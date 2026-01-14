@@ -1,0 +1,315 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "📁 Root"
+    },
+    {
+      "path": "src/backend",
+      "name": "🔧 Backend (ASP.NET)"
+    },
+    {
+      "path": "src/frontend",
+      "name": "⚛️ Frontend (Blazor)"
+    },
+    {
+      "path": "src/desktop",
+      "name": "🖥️ Desktop (WPF)"
+    },
+    {
+      "path": "src/shared",
+      "name": "📦 Shared Libraries"
+    },
+    {
+      "path": "src/utilities",
+      "name": "🔨 Utilities"
+    },
+    {
+      "path": "infrastructure",
+      "name": "☁️ Infrastructure (Bicep)"
+    },
+    {
+      "path": "docs",
+      "name": "📚 Documentation"
+    }
+  ],
+  "settings": {
+    // Global editor settings
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    },
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.encoding": "utf8",
+
+    // .NET / C# settings
+    "dotnet.defaultSolution": "MTGCollectionTracker.sln",
+    "omnisharp.enableRoslynAnalyzers": true,
+    "omnisharp.enableEditorConfigSupport": true,
+    "[csharp]": {
+      "editor.defaultFormatter": "ms-dotnettools.csharp",
+      "editor.tabSize": 4,
+      "editor.insertSpaces": true
+    },
+
+    // Blazor / C# Razor settings
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.tabSize": 2
+    },
+    "[jsonc]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.tabSize": 2
+    },
+
+    // Markdown settings
+    "[markdown]": {
+      "editor.wordWrap": "on",
+      "editor.quickSuggestions": {
+        "comments": "off",
+        "strings": "off",
+        "other": "off"
+      }
+    },
+
+    // Azure Bicep settings
+    "[bicep]": {
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true
+    },
+
+    // Search exclusions
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/bin": true,
+      "**/obj": true,
+      "**/.vs": true,
+      "**/dist": true,
+      "**/out": true
+    },
+
+    // File exclusions
+    "files.exclude": {
+      "**/.vs": true,
+      "**/bin": true,
+      "**/obj": true
+    },
+
+    // Git settings
+    "git.ignoreLimitWarning": true,
+    "git.autofetch": true,
+
+    // Terminal settings
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "dotnet.formatting.organizeImportsOnFormat": true
+  },
+  "extensions": {
+    "recommendations": [
+      // Already installed - Core .NET Development
+      "ms-dotnettools.csharp",
+      "ms-dotnettools.csdevkit",
+      "ms-dotnettools.vscode-dotnet-runtime",
+
+      // Already installed - Frontend Development
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+
+      // Already installed - Azure & Infrastructure
+      "ms-azuretools.vscode-bicep",
+      "ms-azuretools.vscode-azureresourcegroups",
+      "ms-azuretools.vscode-azurefunctions",
+      "ms-azuretools.vscode-azurestaticwebapps",
+
+      // Already installed - PowerShell
+      "ms-vscode.powershell",
+
+      // Already installed - AI Assistants
+      "github.copilot",
+      "github.copilot-chat",
+      "continue.continue"
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": ".NET: Debug Backend API",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder:🔧 Backend (ASP.NET)}/MTGCollectionTracker.Api/bin/Debug/net8.0/MTGCollectionTracker.Api.dll",
+        "args": [],
+        "cwd": "${workspaceFolder:🔧 Backend (ASP.NET)}/MTGCollectionTracker.Api",
+        "stopAtEntry": false,
+        "serverReadyAction": {
+          "action": "openExternally",
+          "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+        },
+        "env": {
+          "ASPNETCORE_ENVIRONMENT": "Development"
+        }
+      },
+      {
+        "name": ".NET: Debug Desktop Client",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder:🖥️ Desktop (WPF)}/MTGALogParser/bin/Debug/net8.0/MTGALogParser.dll",
+        "args": [],
+        "cwd": "${workspaceFolder:🖥️ Desktop (WPF)}/MTGALogParser",
+        "console": "internalConsole",
+        "stopAtEntry": false
+      },
+      {
+        "name": ".NET: Debug CardTranslator",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder:🔨 Utilities}/CardTranslator/bin/Debug/net8.0/CardTranslator.dll",
+        "args": [],
+        "cwd": "${workspaceFolder:🔨 Utilities}/CardTranslator",
+        "console": "integratedTerminal",
+        "stopAtEntry": false
+      },
+      {
+        "name": "Chrome: Debug Frontend",
+        "type": "chrome",
+        "request": "launch",
+        "url": "http://localhost:5173",
+        "webRoot": "${workspaceFolder:⚛️ Frontend (Blazor)}/src",
+        "preLaunchTask": "frontend-dev"
+      }
+    ],
+    "compounds": [
+      {
+        "name": "🚀 Full Stack (Backend + Frontend)",
+        "configurations": [".NET: Debug Backend API", "Chrome: Debug Frontend"]
+      }
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "build",
+        "type": "shell",
+        "command": "dotnet",
+        "args": ["build", "${workspaceFolder}/MTGCollectionTracker.sln"],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "clean",
+        "type": "shell",
+        "command": "dotnet",
+        "args": ["clean", "${workspaceFolder}/MTGCollectionTracker.sln"],
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "restore",
+        "type": "shell",
+        "command": "dotnet",
+        "args": ["restore", "${workspaceFolder}/MTGCollectionTracker.sln"],
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "test",
+        "type": "shell",
+        "command": "dotnet",
+        "args": ["test", "${workspaceFolder}/MTGCollectionTracker.sln"],
+        "group": {
+          "kind": "test",
+          "isDefault": true
+        },
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "backend-run",
+        "type": "shell",
+        "command": "dotnet",
+        "args": [
+          "run",
+          "--project",
+          "${workspaceFolder}/src/backend/MTGCollectionTracker.Api/MTGCollectionTracker.Api.csproj"
+        ],
+        "problemMatcher": "$msCompile",
+        "isBackground": true
+      },
+      {
+        "label": "frontend-install",
+        "type": "shell",
+        "command": "npm",
+        "args": ["install"],
+        "options": {
+          "cwd": "${workspaceFolder}/src/frontend"
+        }
+      },
+      {
+        "label": "frontend-dev",
+        "type": "shell",
+        "command": "npm",
+        "args": ["run", "dev"],
+        "options": {
+          "cwd": "${workspaceFolder}/src/frontend"
+        },
+        "isBackground": true,
+        "problemMatcher": {
+          "pattern": {
+            "regexp": "^([^\\s].*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".",
+            "endsPattern": "ready in"
+          }
+        }
+      },
+      {
+        "label": "frontend-build",
+        "type": "shell",
+        "command": "npm",
+        "args": ["run", "build"],
+        "options": {
+          "cwd": "${workspaceFolder}/src/frontend"
+        }
+      },
+      {
+        "label": "bicep-build",
+        "type": "shell",
+        "command": "az",
+        "args": [
+          "bicep",
+          "build",
+          "--file",
+          "${workspaceFolder}/infrastructure/main.bicep"
+        ]
+      }
+    ]
+  }
+}
