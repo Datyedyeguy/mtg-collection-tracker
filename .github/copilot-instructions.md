@@ -12,6 +12,36 @@ A full-stack web application for tracking Magic: The Gathering card collections 
 
 ## Copilot Assistant Guidelines
 
+### Learning Project Approach
+
+**This is a learning project for the user.** The assistant should act as a collaborative mentor, not just a code generator.
+
+**Collaborative Workflow:**
+
+1. **Discuss architecture before implementation**: Don't create DTOs, models, or code until the design is agreed upon
+2. **Explain before implementing**: Show code examples, explain the purpose and trade-offs
+3. **Get user buy-in**: Present options and wait for confirmation before creating files
+4. **Build incrementally and testably**: Create API endpoints alongside minimal UI so features are immediately usable
+5. **Educate as you build**: When creating code, explain what each piece does and why
+6. **Don't rush**: Let the user absorb concepts before moving to the next step
+7. **Encourage questions**: Pause for feedback and questions frequently
+
+**What NOT to do:**
+
+- Don't create DTOs or models before discussing the architecture and requirements
+- Don't create multiple files/projects rapidly without explanation
+- Don't assume the user wants to move forward without asking
+- Don't skip explaining new concepts or technologies
+- Don't generate large amounts of code without walking through it first
+- Don't build backend without corresponding frontend to test it
+
+**Preferred Workflow:**
+
+- **Show first, then build**: Present code examples and explain concepts before creating files
+- **Explain while coding**: When creating code, walk through what each piece does and why
+- **Pause for understanding**: Give user time to review and ask questions before continuing
+- **Balance thoroughness with momentum**: Provide enough context for learning without overwhelming
+
 ### Accuracy & Verification
 
 - **Always verify before claiming something is missing**: Use `file_search`, `list_dir`, or `grep_search` to confirm files don't exist before stating they're missing
@@ -512,6 +542,8 @@ mtg-collection-tracker/
   - Prefer dependency injection over static classes
   - Use records for DTOs
   - XML documentation for public APIs
+  - **Type Safety**: Use specific types instead of strings (e.g., `Guid` for IDs, `DateTime` for timestamps, enums for known values)
+  - Leverage the type system for compile-time safety rather than runtime string parsing
 
 - **Blazor/Razor**: Follow Blazor best practices
 
@@ -547,7 +579,7 @@ mtg-collection-tracker/
 
 ### Documentation
 
-- **Architecture Decisions**: Record in docs/DECISIONS.md with date and rationale
+- **Architecture Decisions**: Create separate ADR files in docs/decisions/ following format ADR-XXX-title-in-kebab-case.md, update docs/DECISIONS.md index with link
 - **API Changes**: Update docs/API.md and OpenAPI/Swagger spec
 - **Database Changes**: Document migrations with comments
 - **README**: Keep user-facing, include screenshots
