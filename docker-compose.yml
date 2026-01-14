@@ -1,0 +1,37 @@
+# Docker Compose for local development
+# 
+# Usage:
+#   docker compose up -d        Start PostgreSQL in background
+#   docker compose down         Stop PostgreSQL (keeps data)
+#   docker compose down -v      Stop and DELETE all data (fresh start)
+#   docker compose logs -f      View PostgreSQL logs
+#
+# Connection string for local development:
+#   Host=localhost;Port=5432;Database=mtgtracker;Username=mtgadmin;Password=LocalDev123!
+#
+# To connect via psql:
+#   docker exec -it mtg-postgres psql -U mtgadmin -d mtgtracker
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mtg-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mtgadmin
+      POSTGRES_PASSWORD: LocalDev123!
+      POSTGRES_DB: mtgtracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mtgadmin -d mtgtracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    name: mtg-tracker-postgres-data

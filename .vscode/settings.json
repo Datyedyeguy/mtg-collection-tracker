@@ -1,0 +1,15 @@
+{
+  // Trim trailing whitespace for most file types
+  "files.trimTrailingWhitespace": true,
+
+  // But preserve it for Markdown (where trailing spaces mean line breaks)
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  },
+
+  // Prevent C# extensions from auto-creating project files
+  "dotnet.automaticallyCreateSolutionInWorkspace": false,
+  
+  // Don't auto-restore NuGet packages (can trigger project creation)
+  "dotnet.automaticallyRunRestore": false
+}
