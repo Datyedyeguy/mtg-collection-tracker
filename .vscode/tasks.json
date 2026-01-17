@@ -44,38 +44,77 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "frontend-install",
+      "label": "backend-watch",
       "type": "shell",
-      "command": "npm",
-      "args": ["install"],
-      "options": {
-        "cwd": "${workspaceFolder}/src/frontend"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "frontend-dev",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "dev"],
-      "options": {
-        "cwd": "${workspaceFolder}/src/frontend"
-      },
+      "command": "dotnet",
+      "args": [
+        "watch",
+        "run",
+        "--project",
+        "${workspaceFolder}/src/backend/MTGCollectionTracker.Api/MTGCollectionTracker.Api.csproj",
+        "--launch-profile",
+        "https"
+      ],
       "isBackground": true,
       "problemMatcher": {
         "pattern": {
-          "regexp": "^([^\\s].*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "regexp": "^$",
           "file": 1,
           "line": 2,
-          "column": 3,
-          "severity": 4,
-          "message": 5
+          "message": 3
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "^.*VITE.*$",
-          "endsPattern": "^.*Local:.*$"
+          "beginsPattern": "^.*dotnet watch.*$",
+          "endsPattern": "^.*Now listening on.*$"
         }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "dev-servers"
+      }
+    },
+    {
+      "label": "frontend-watch",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "watch",
+        "run",
+        "--project",
+        "${workspaceFolder}/src/frontend/MTGCollectionTracker.Client/MTGCollectionTracker.Client.csproj",
+        "--launch-profile",
+        "https"
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$",
+          "file": 1,
+          "line": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*dotnet watch.*$",
+          "endsPattern": "^.*Now listening on.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "dev-servers"
+      }
+    },
+    {
+      "label": "start-full-stack",
+      "dependsOn": ["backend-watch", "frontend-watch"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
       }
     }
   ]

@@ -21,7 +21,17 @@ docker compose up -d
 docker ps --filter "name=mtg-postgres"
 ```
 
-### 2. Create Development Configuration
+### 2. Trust the Development Certificate
+
+ASP.NET Core uses a self-signed certificate for HTTPS during development. Trust it to avoid browser warnings and CORS issues:
+
+```bash
+dotnet dev-certs https --trust
+```
+
+This only needs to be done once per machine. You may be prompted to confirm.
+
+### 3. Create Development Configuration
 
 The `appsettings.Development.json` file is gitignored (contains local credentials). Create it manually:
 
@@ -39,14 +49,19 @@ The `appsettings.Development.json` file is gitignored (contains local credential
     "DefaultConnection": "Host=localhost;Port=5432;Database=mtgtracker;Username=mtgadmin;Password=LocalDev123!"
   },
   "Cors": {
-    "AllowedOrigins": ["http://localhost:5002", "https://localhost:5002"]
+    "AllowedOrigins": [
+      "http://localhost:5002",
+      "https://localhost:5002",
+      "http://localhost:5003",
+      "https://localhost:5003"
+    ]
   }
 }
 ```
 
 > **Note**: The password `LocalDev123!` matches the Docker Compose configuration. This is only for local development.
 
-### 3. Run the Backend API
+### 4. Run the Backend API
 
 ```bash
 cd src/backend/MTGCollectionTracker.Api
@@ -64,11 +79,11 @@ Test the health endpoint:
 curl -k https://localhost:5001/api/health
 ```
 
-### 4. Run the Frontend (Coming Soon)
+### 5. Run the Frontend
 
 ```bash
 cd src/frontend/MTGCollectionTracker.Client
-dotnet run
+dotnet run --launch-profile https
 ```
 
 Frontend will be available at `https://localhost:5002`

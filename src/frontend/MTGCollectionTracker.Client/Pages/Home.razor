@@ -1,0 +1,68 @@
+﻿@page "/"
+@inject HttpClient Http
+
+<PageTitle>MTG Collection Tracker</PageTitle>
+
+<h1>MTG Collection Tracker</h1>
+
+<p>Welcome to your Magic: The Gathering collection tracker.</p>
+
+<h2>API Health Check</h2>
+
+@if (healthStatus == null)
+{
+    <p><em>Checking API connection...</em></p>
+}
+else if (errorMessage != null)
+{
+    <div class="alert alert-danger">
+        <strong>Error:</strong> @errorMessage
+    </div>
+}
+else
+{
+    <div class="alert alert-success">
+        <p><strong>Status:</strong> @healthStatus.Status</p>
+        <p><strong>Version:</strong> @healthStatus.Version</p>
+        <p><strong>Timestamp:</strong> @healthStatus.Timestamp.ToString("yyyy-MM-dd HH:mm:ss UTC")</p>
+    </div>
+}
+
+<button class="btn btn-primary" @onclick="CheckHealth">Refresh</button>
+
+@code {
+    private HealthResponse? healthStatus;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckHealth();
+    }
+
+    private async Task CheckHealth()
+    {
+        errorMessage = null;
+        healthStatus = null;
+
+        try
+        {
+            healthStatus = await Http.GetFromJsonAsync<HealthResponse>("api/health");
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"Cannot connect to API: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unexpected error: {ex.Message}";
+        }
+    }
+
+    // DTO to match the backend response
+    public class HealthResponse
+    {
+        public string Status { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+        public string Version { get; set; } = "";
+    }
+}
