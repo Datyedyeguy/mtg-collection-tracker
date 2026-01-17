@@ -1,0 +1,51 @@
+# Backend CI Pipeline
+# Builds and tests the ASP.NET Core API on every push/PR to main
+#
+# Triggers:
+#   - Push to main branch (if backend files changed)
+#   - Pull requests targeting main (if backend files changed)
+#
+# Cost: Free for public repositories (unlimited minutes)
+
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Clone the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install .NET SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # Step 3: Restore NuGet packages
+      - name: Restore dependencies
+        run: dotnet restore src/backend/MTGCollectionTracker.Api/MTGCollectionTracker.Api.csproj
+
+      # Step 4: Build in Release mode
+      - name: Build
+        run: dotnet build src/backend/MTGCollectionTracker.Api/MTGCollectionTracker.Api.csproj --configuration Release --no-restore
+
+      # Step 5: Run tests (when we have them)
+      # Uncomment when test project exists:
+      # - name: Test
+      #   run: dotnet test src/backend --configuration Release --no-build --verbosity normal
