@@ -154,6 +154,8 @@
   - [ ] frontend-ci.yml (build, deploy Blazor app)
   - [ ] desktop-ci.yml (build, sign, publish WPF client)
   - [ ] infrastructure-ci.yml (deploy Bicep templates)
+  - [ ] **Code style enforcement** (`dotnet format --verify-no-changes` to enforce EditorConfig rules)
+  - [ ] Consider StyleCop.Analyzers or Roslyn analyzers for additional compile-time checks
 - [ ] Set up cost management
   - [ ] Budget alerts ($75, $125, $150)
   - [ ] Cost anomaly detection
