@@ -39,8 +39,8 @@ jobs:
 
       # Step 3: Restore NuGet packages
       - name: Restore dependencies
-        run: dotnet restore src/frontend/MTGCollectionTracker.Client/MTGCollectionTracker.Client.csproj
+        run: dotnet restore MTGCollectionTracker.Frontend.slnx
 
       # Step 4: Build in Release mode
       - name: Build
-        run: dotnet build src/frontend/MTGCollectionTracker.Client/MTGCollectionTracker.Client.csproj --configuration Release --no-restore
+        run: dotnet build MTGCollectionTracker.Frontend.slnx --configuration Release --no-restore

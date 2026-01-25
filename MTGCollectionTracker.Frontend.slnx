@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/frontend/">
+    <Project Path="src/frontend/MTGCollectionTracker.Client/MTGCollectionTracker.Client.csproj" />
+  </Folder>
+</Solution>

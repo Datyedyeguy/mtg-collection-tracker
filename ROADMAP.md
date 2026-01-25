@@ -151,6 +151,7 @@
   - [ ] Deploy production environment
 - [ ] Configure GitHub Actions CI/CD
   - [ ] backend-ci.yml (build, test, deploy API)
+  - [ ] **Run EF migrations before deployment** (`dotnet ef database update` in pipeline)
   - [ ] frontend-ci.yml (build, deploy Blazor app)
   - [ ] desktop-ci.yml (build, sign, publish WPF client)
   - [ ] infrastructure-ci.yml (deploy Bicep templates)
