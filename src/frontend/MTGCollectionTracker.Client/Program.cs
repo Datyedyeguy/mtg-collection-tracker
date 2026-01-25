@@ -1,15 +1,28 @@
 using System;
 using System.Net.Http;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using MTGCollectionTracker.Client;
+using MTGCollectionTracker.Client.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 // Mount root components
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
+
+// Register authorization services (enables <AuthorizeView> and [Authorize])
+builder.Services.AddAuthorizationCore();
+
+// Register authentication and token management services
+builder.Services.AddScoped<ITokenStorageService, TokenStorageService>();
+
+// Register custom authentication state provider
+builder.Services.AddScoped<CustomAuthStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp => 
+    sp.GetRequiredService<CustomAuthStateProvider>());
 
 // Configure HttpClient to call our backend API
 // In development: https://localhost:5001

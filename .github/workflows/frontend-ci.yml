@@ -14,11 +14,15 @@ on:
     branches: [main]
     paths:
       - "src/frontend/**"
+      - "src/shared/**"
+      - "tests/MTGCollectionTracker.Client.Tests/**"
       - ".github/workflows/frontend-ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "src/frontend/**"
+      - "src/shared/**"
+      - "tests/MTGCollectionTracker.Client.Tests/**"
       - ".github/workflows/frontend-ci.yml"
 
 jobs:
@@ -44,3 +48,7 @@ jobs:
       # Step 4: Build in Release mode
       - name: Build
         run: dotnet build MTGCollectionTracker.Frontend.slnx --configuration Release --no-restore
+
+      # Step 5: Run tests
+      - name: Test
+        run: dotnet test MTGCollectionTracker.Frontend.slnx --configuration Release --no-build --verbosity normal

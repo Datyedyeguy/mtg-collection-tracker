@@ -544,6 +544,7 @@ mtg-collection-tracker/
   - XML documentation for public APIs
   - **Type Safety**: Use specific types instead of strings (e.g., `Guid` for IDs, `DateTime` for timestamps, enums for known values)
   - Leverage the type system for compile-time safety rather than runtime string parsing
+  - **Project Settings**: Common settings (`Nullable`, `ImplicitUsings`, `LangVersion`, `TreatWarningsAsErrors`) are configured in `Directory.Build.props` at the repository root and automatically apply to all projects. Individual `.csproj` files should not override these unless absolutely necessary.
 
 - **Blazor/Razor**: Follow Blazor best practices
 

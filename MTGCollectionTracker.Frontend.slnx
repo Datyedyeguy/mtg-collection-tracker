@@ -6,4 +6,7 @@
   <Folder Name="/src/shared/">
     <Project Path="src/shared/MTGCollectionTracker.Shared/MTGCollectionTracker.Shared.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MTGCollectionTracker.Client.Tests/MTGCollectionTracker.Client.Tests.csproj" />
+  </Folder>
 </Solution>

@@ -109,6 +109,8 @@
 
 - [ ] Build Scryfall sync utility (ScryfallSync console app) - defer until API is stable
 - [ ] Structured logging (Serilog) - can add later
+  - [ ] Add logging to frontend (Blazor console logging or remote logging)
+  - [ ] Improve exception handling in CustomAuthStateProvider (specific exception types, TryParse for token claims)
 - [ ] Advanced error handling - start simple
 
 ---
