@@ -80,7 +80,7 @@
   - [ ] User profile endpoints
   - [ ] Health check endpoint
 - [ ] **Create test projects**
-  - [ ] MTGCollectionTracker.Tests (unit tests with xUnit)
+  - [ ] MTGCollectionTracker.Api.Tests (unit tests with MSTest, NSubstitute, Shouldly)
   - [ ] Integration tests infrastructure (TestContainers for PostgreSQL)
   - [ ] Test auth flows, API endpoints, database operations
 - [ ] **Create Blazor WebAssembly project**
@@ -281,7 +281,14 @@
 
 ## 🐛 Known Issues & Technical Debt
 
-_None yet - will track as issues arise during development_
+### Privacy & Compliance
+
+- **IP Address Storage (PII Concern)**: The `RefreshToken` entity stores client IP addresses (`CreatedByIp`, `RevokedByIp`) for security auditing. IP addresses are considered PII under GDPR and similar regulations. Before production use with real users, consider:
+  - Documenting data collection in a privacy policy
+  - Implementing IP anonymization (e.g., masking last octet: `192.168.1.xxx`)
+  - Adding a data retention policy to delete old refresh tokens
+  - Making IP logging configurable/optional
+  - **Location**: [AuthController.cs](src/backend/MTGCollectionTracker.Api/Controllers/AuthController.cs) `GetClientIpAddress()` method
 
 ---
 

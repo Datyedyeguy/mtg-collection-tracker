@@ -3,4 +3,7 @@
   <Folder Name="/src/frontend/">
     <Project Path="src/frontend/MTGCollectionTracker.Client/MTGCollectionTracker.Client.csproj" />
   </Folder>
+  <Folder Name="/src/shared/">
+    <Project Path="src/shared/MTGCollectionTracker.Shared/MTGCollectionTracker.Shared.csproj" />
+  </Folder>
 </Solution>

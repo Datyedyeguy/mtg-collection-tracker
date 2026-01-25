@@ -24,6 +24,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     }
 
     /// <summary>
+    /// Refresh tokens for JWT authentication.
+    /// </summary>
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    /// <summary>
     /// Configure entity relationships, indexes, and constraints.
     /// </summary>
     protected override void OnModelCreating(ModelBuilder builder)
@@ -42,6 +47,27 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasDefaultValueSql("NOW()");
 
             entity.Property(u => u.UpdatedAt)
+                .HasDefaultValueSql("NOW()");
+        });
+
+        // Configure RefreshToken
+        builder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(rt => rt.Id);
+
+            // Index on TokenHash for fast lookups
+            entity.HasIndex(rt => rt.TokenHash);
+
+            // Index on UserId for finding user's tokens
+            entity.HasIndex(rt => rt.UserId);
+
+            // Relationship: RefreshToken -> User
+            entity.HasOne(rt => rt.User)
+                .WithMany()
+                .HasForeignKey(rt => rt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Property(rt => rt.CreatedAt)
                 .HasDefaultValueSql("NOW()");
         });
 

@@ -4,8 +4,14 @@
     <Project Path="src/backend/MTGCollectionTracker.Api/MTGCollectionTracker.Api.csproj" />
     <Project Path="src/backend/MTGCollectionTracker.Data/MTGCollectionTracker.Data.csproj" />
   </Folder>
+  <Folder Name="/src/frontend/">
+    <Project Path="src/frontend/MTGCollectionTracker.Client/MTGCollectionTracker.Client.csproj" />
+  </Folder>
   <Folder Name="/src/shared/">
     <Project Path="src/shared/MTGCollectionTracker.Shared/MTGCollectionTracker.Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/utilities/">
+    <Project Path="src/utilities/CardTranslator/CardTranslator.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MTGCollectionTracker.Api.Tests/MTGCollectionTracker.Api.Tests.csproj" />

@@ -564,7 +564,7 @@ mtg-collection-tracker/
 
 ### Testing Strategy
 
-- **Backend**: Minimum 80% code coverage with xUnit
+- **Backend**: Minimum 80% code coverage with MSTest, NSubstitute, and Shouldly
 
   - Unit tests for services and repositories
   - Integration tests for API endpoints

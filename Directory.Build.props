@@ -1,0 +1,26 @@
+<!--
+  Directory.Build.props
+
+  This file is automatically imported by MSBuild for all projects in this directory tree.
+  Use it to enforce consistent settings across all projects.
+
+  See: https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build
+-->
+<Project>
+  <PropertyGroup>
+    <!-- Enforce explicit using statements for clarity and consistency -->
+    <ImplicitUsings>disable</ImplicitUsings>
+
+    <!-- Enable nullable reference types for better null safety -->
+    <Nullable>enable</Nullable>
+
+    <!-- Use the latest C# language version -->
+    <LangVersion>latest</LangVersion>
+
+    <!-- Treat warnings as errors in Release builds -->
+    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
+
+    <!-- Enable deterministic builds for reproducibility -->
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+</Project>

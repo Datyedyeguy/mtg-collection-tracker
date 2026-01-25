@@ -14,11 +14,17 @@ on:
     branches: [main]
     paths:
       - "src/backend/**"
+      - "src/shared/**"
+      - "tests/**"
+      - "Directory.Build.props"
       - ".github/workflows/backend-ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "src/backend/**"
+      - "src/shared/**"
+      - "tests/**"
+      - "Directory.Build.props"
       - ".github/workflows/backend-ci.yml"
 
 jobs:
@@ -45,7 +51,6 @@ jobs:
       - name: Build
         run: dotnet build MTGCollectionTracker.Backend.slnx --configuration Release --no-restore
 
-      # Step 5: Run tests (when we have them)
-      # Uncomment when test project exists:
-      # - name: Test
-      #   run: dotnet test src/backend --configuration Release --no-build --verbosity normal
+      # Step 5: Run tests
+      - name: Test
+        run: dotnet test MTGCollectionTracker.Backend.slnx --configuration Release --no-build --verbosity normal
