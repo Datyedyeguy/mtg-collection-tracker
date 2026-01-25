@@ -52,37 +52,38 @@
 
 **Priority Tasks:**
 
-- [ ] **Create Shared DTOs project**
-  - [ ] MTGCollectionTracker.Shared (.NET Standard 2.1)
-  - [ ] Define DTOs for API contracts
-  - [ ] Validation attributes and models
-- [ ] **Create ASP.NET Core 10 Web API project**
-  - [ ] Project structure (Controllers, Services, Middleware)
-  - [ ] Configure Kestrel and HTTPS
-  - [ ] Add Swagger/OpenAPI documentation
-  - [ ] Configure dependency injection
-- [ ] **Set up Entity Framework Core with PostgreSQL**
-  - [ ] Create MTGCollectionTracker.Data project
-  - [ ] Install Npgsql.EntityFrameworkCore.PostgreSQL
-  - [ ] Create DbContext (AppDbContext.cs)
-  - [ ] Define entity models (User, Card, CollectionEntry, Decklist, etc.)
-  - [ ] Configure relationships and indexes
-  - [ ] Generate and apply first migration
-- [ ] **Implement authentication system**
-  - [ ] ASP.NET Core Identity setup
-  - [ ] JWT token generation and validation middleware
-  - [ ] Refresh token mechanism
-  - [ ] Auth endpoints (/api/auth/register, /api/auth/login, /api/auth/refresh)
-  - [ ] Password hashing (BCrypt)
+- [x] **Create Shared DTOs project** ✅
+  - [x] MTGCollectionTracker.Shared (.NET Standard 2.1)
+  - [x] Define DTOs for API contracts (Auth DTOs)
+  - [ ] Validation attributes and models (deferred - using Data Annotations)
+- [x] **Create ASP.NET Core 10 Web API project** ✅
+  - [x] Project structure (Controllers, Services, Middleware)
+  - [x] Configure Kestrel and HTTPS
+  - [ ] ~~Add Swagger/OpenAPI documentation~~ (skipped - using .http files)
+  - [x] Configure dependency injection
+- [x] **Set up Entity Framework Core with PostgreSQL** ✅
+  - [x] Create MTGCollectionTracker.Data project
+  - [x] Install Npgsql.EntityFrameworkCore.PostgreSQL
+  - [x] Create DbContext (AppDbContext.cs)
+  - [x] Define entity models (User, RefreshToken - Card, CollectionEntry, Decklist pending)
+  - [x] Configure relationships and indexes
+  - [x] Generate and apply first migration
+- [x] **Implement authentication system** ✅
+  - [x] ASP.NET Core Identity setup
+  - [x] JWT token generation and validation middleware
+  - [x] Refresh token mechanism (with SHA256 hashing)
+  - [x] Auth endpoints (/api/auth/register, /api/auth/login, /api/auth/refresh, /api/auth/logout)
+  - [x] Password hashing (Identity uses PBKDF2 by default)
 - [ ] **Build core API endpoints**
   - [ ] Collections endpoints (GET, POST, DELETE)
   - [ ] Cards search endpoint
   - [ ] User profile endpoints
-  - [ ] Health check endpoint
-- [ ] **Create test projects**
-  - [ ] MTGCollectionTracker.Api.Tests (unit tests with MSTest, NSubstitute, Shouldly)
+  - [x] Health check endpoint ✅
+- [x] **Create test projects** ✅
+  - [x] MTGCollectionTracker.Api.Tests (unit tests with MSTest, NSubstitute, Shouldly)
   - [ ] Integration tests infrastructure (TestContainers for PostgreSQL)
-  - [ ] Test auth flows, API endpoints, database operations
+  - [x] Test JwtService (28 tests)
+  - [ ] Test auth flows, API endpoints
 - [ ] **Create Blazor WebAssembly project**
   - [ ] Configure MudBlazor or Blazorise UI components
   - [ ] Set up routing and navigation
@@ -98,9 +99,9 @@
   - [ ] Display user's collection
   - [ ] Card search and filtering
   - [ ] Basic pagination
-- [ ] **Local development setup**
-  - [ ] Docker Compose for PostgreSQL (local dev database)
-  - [ ] Connection string configuration
+- [x] **Local development setup** ✅
+  - [x] Docker Compose for PostgreSQL (local dev database)
+  - [x] Connection string configuration
   - [ ] Run API and frontend together locally
   - [ ] Test end-to-end user flows
 
