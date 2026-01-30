@@ -18,10 +18,11 @@ builder.Services.AddAuthorizationCore();
 
 // Register authentication and token management services
 builder.Services.AddScoped<ITokenStorageService, TokenStorageService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Register custom authentication state provider
 builder.Services.AddScoped<CustomAuthStateProvider>();
-builder.Services.AddScoped<AuthenticationStateProvider>(sp => 
+builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<CustomAuthStateProvider>());
 
 // Configure HttpClient to call our backend API

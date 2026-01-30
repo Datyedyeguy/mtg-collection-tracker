@@ -14,6 +14,31 @@
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <span class="nav-link text-light">Hello, @GetUserDisplayName(context)</span>
+                </div>
+                <div class="nav-item px-3">
+                    <button class="nav-link btn btn-link text-start" @onclick="HandleLogoutAsync">
+                        <span aria-hidden="true">🚪</span> Logout
+                    </button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="login">
+                        <span aria-hidden="true">🔑</span> Login
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="register">
+                        <span aria-hidden="true">📝</span> Register
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
     </nav>
 </div>
 
@@ -25,5 +50,35 @@
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    [Inject] private IAuthService? AuthService { get; set; }
+
+    private async Task HandleLogoutAsync()
+    {
+        if (AuthService != null)
+        {
+            await AuthService.LogoutAsync();
+        }
+    }
+
+    private string GetUserDisplayName(AuthenticationState authState)
+    {
+        var user = authState.User;
+
+        // Try to get display name claim first (backend sends "displayName" claim)
+        var displayName = user.FindFirst("displayName")?.Value;
+
+        if (!string.IsNullOrEmpty(displayName))
+        {
+            return displayName;
+        }
+
+        // Fallback to email
+        var email = user.FindFirst("email")?.Value
+        ?? user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value
+        ?? user.Identity?.Name;
+
+        return email ?? "User";
     }
 }

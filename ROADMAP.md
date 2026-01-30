@@ -81,20 +81,34 @@
   - [x] Health check endpoint ✅
 - [x] **Create test projects** ✅
   - [x] MTGCollectionTracker.Api.Tests (unit tests with MSTest, NSubstitute, Shouldly)
-  - [ ] Integration tests infrastructure (TestContainers for PostgreSQL)
+  - [x] MTGCollectionTracker.Client.Tests (frontend service tests)
+  - [ ] Integration tests infrastructure (TestContainers for PostgreSQL) - deferred
   - [x] Test JwtService (28 tests)
+  - [x] Test CustomAuthStateProvider (token parsing, auth state management)
+  - [x] Test TokenStorageService (localStorage interactions)
+  - [x] AuthServiceTests created (documented test requirements, HTTP mocking deferred)
   - [ ] Test auth flows, API endpoints
-- [ ] **Create Blazor WebAssembly project**
-  - [ ] Configure MudBlazor or Blazorise UI components
-  - [ ] Set up routing and navigation
-  - [ ] Configure HttpClient with base URL
-  - [ ] API client service classes
-- [ ] **Implement authentication UI**
-  - [ ] Login page with form validation
-  - [ ] Registration page
-  - [ ] Token storage (localStorage)
-  - [ ] Auth state management (AuthenticationStateProvider)
-  - [ ] Protected routes
+
+  **Frontend Testing Strategy (Deferred):**
+  - Unit tests for services implemented (CustomAuthStateProvider, TokenStorageService)
+  - AuthService tests documented but require HTTP mocking library (RichardSzalay.MockHttp)
+  - bUnit component tests deferred to Phase 3+ (requires separate GitHub Actions workflow)
+  - Focus on backend service tests for MVP, expand frontend testing after Azure deployment
+  - Integration tests with TestContainers also deferred (GitHub Actions resource considerations)
+
+- [x] **Create Blazor WebAssembly project** ✅
+  - [x] Initial project created with Bootstrap CSS
+  - [ ] Configure MudBlazor or Blazorise UI components (using vanilla Bootstrap for now)
+  - [x] Set up routing and navigation
+  - [x] Configure HttpClient with base URL
+  - [x] API client service classes (AuthService)
+- [x] **Implement authentication UI** ✅
+  - [x] Login page with form validation and password visibility toggle
+  - [x] Registration page with password requirements (12 char minimum)
+  - [x] Token storage (localStorage via TokenStorageService)
+  - [x] Auth state management (CustomAuthStateProvider)
+  - [x] Navigation menu with AuthorizeView (Login/Register when anonymous, Logout when authenticated)
+  - [ ] Protected routes (can add [Authorize] to pages as needed)
 - [ ] **Build basic collection view**
   - [ ] Display user's collection
   - [ ] Card search and filtering
@@ -105,8 +119,36 @@
   - [ ] Run API and frontend together locally
   - [ ] Test end-to-end user flows
 
+**Decisions Needed:**
+
+- [ ] **API Versioning Strategy** - Decide whether/when to add versioning
+  - Current: `/api/auth/login` (no version)
+  - Option 1: Add `/api/v1/` now for practice
+  - Option 2: Defer until desktop client ships (Phase 5)
+  - Option 3: Defer until breaking changes needed
+  - Consider: URL versioning vs header versioning vs query string
+  - Note: ApiRoutes.cs structure already supports easy migration to versioned routes
+
+**Technical Debt / Warnings:**
+
+- [ ] **Blazor WebAssembly dotnet watch warning** - .NET Standard 2.1 Shared project causes hot reload warnings
+  - Warning: "Found project reference without a matching metadata reference"
+  - Root cause: Mixing .NET Standard 2.1 (Shared) with .NET 10 (Blazor WebAssembly)
+  - Impact: Cosmetic warning, hot reload doesn't work for Shared project changes (requires manual rebuild)
+  - Solution options:
+    - Option 1: Upgrade MTGCollectionTracker.Shared from netstandard2.1 to net10.0
+    - Option 2: Multi-target Shared project: `<TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>`
+    - Option 3: Accept warning (not recommended - warnings should be treated as errors)
+  - Decision: Should be resolved before Phase 4 (Azure deployment) - build warnings in CI/CD pipelines
+  - Recommendation: Option 1 (upgrade to net10.0) - simplest, no desktop client constraints yet
+
 **Nice to Have (Defer to Later):**
 
+- [ ] **HTTP mocking strategy for frontend tests (Decision pending - see ADR-018)**
+  - [ ] Review ADR-018 and decide on approach (RichardSzalay.MockHttp vs alternatives)
+  - [ ] Once decided, add package to MTGCollectionTracker.Client.Tests
+  - [ ] Implement AuthService tests (currently documented with [Ignore] attributes)
+  - [ ] Verify API endpoint paths match controller routes (catches refactoring issues)
 - [ ] Build Scryfall sync utility (ScryfallSync console app) - defer until API is stable
 - [ ] Structured logging (Serilog) - can add later
   - [ ] Add logging to frontend (Blazor console logging or remote logging)

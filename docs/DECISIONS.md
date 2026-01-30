@@ -25,6 +25,11 @@ Each decision is documented in a separate file following this structure:
 - [ADR-009: JWT + Refresh Tokens for Authentication](decisions/ADR-009-jwt-refresh-tokens.md)
 - [ADR-016: Authentication Implementation Strategy](decisions/ADR-016-authentication-implementation.md)
 - [ADR-017: Testing Libraries (MSTest, NSubstitute, Shouldly)](decisions/ADR-017-testing-libraries.md)
+- [ADR-019: Shared API Route Constants](decisions/ADR-019-shared-api-routes.md)
+
+### Pending Decisions
+
+- [ADR-018: HTTP Mocking for Frontend Tests](decisions/ADR-018-http-mocking-frontend-tests.md) - **Status: Proposed**
 
 ### Frontend
 

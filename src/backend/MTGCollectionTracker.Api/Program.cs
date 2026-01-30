@@ -28,12 +28,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // This sets up user management with our custom ApplicationUser
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    // Password requirements - balance security with usability for a personal project
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = false;  // No special chars required
-    options.Password.RequiredLength = 8;
+    // Password requirements - prioritize length over complexity (NIST guidelines)
+    // See: ADR-016 for authentication decisions
+    options.Password.RequireDigit = false;              // No complexity requirements
+    options.Password.RequireLowercase = false;          // No complexity requirements
+    options.Password.RequireUppercase = false;          // No complexity requirements
+    options.Password.RequireNonAlphanumeric = false;    // No complexity requirements
+    options.Password.RequiredLength = 12;               // Length is what matters
 
     // Username requirements
     options.User.RequireUniqueEmail = true;

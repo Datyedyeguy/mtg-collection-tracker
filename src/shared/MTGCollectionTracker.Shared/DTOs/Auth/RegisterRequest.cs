@@ -19,7 +19,7 @@ public class RegisterRequest
     /// User's password. Must meet complexity requirements.
     /// </summary>
     [Required(ErrorMessage = "Password is required")]
-    [MinLength(8, ErrorMessage = "Password must be at least 8 characters")]
+    [MinLength(12, ErrorMessage = "Password must be at least 12 characters")]
     public string Password { get; set; } = string.Empty;
 
     /// <summary>

@@ -1,0 +1,132 @@
+@page "/register"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@using MTGCollectionTracker.Shared.DTOs.Auth
+
+<PageTitle>Register - MTG Collection Tracker</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Create Account</h3>
+
+                    <EditForm Model="@registerRequest" OnValidSubmit="HandleRegisterAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email" class="form-control" @bind-Value="registerRequest.Email"
+                                placeholder="your@email.com" />
+                            <ValidationMessage For="@(() => registerRequest.Email)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <input id="password" type="@(showPassword ? "text" : "password")" class="form-control"
+                                    @bind="registerRequest.Password" placeholder="Enter your password" />
+                                <button type="button" class="btn btn-outline-secondary"
+                                    @onclick="TogglePasswordVisibility">
+                                    @(showPassword ? "Hide" : "Show")
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">Password must be at least 12 characters</small>
+                            <ValidationMessage For="@(() => registerRequest.Password)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password</label>
+                            <div class="input-group">
+                                <input id="confirmPassword" type="@(showConfirmPassword ? "text" : "password")"
+                                    class="form-control" @bind="registerRequest.ConfirmPassword"
+                                    placeholder="Confirm your password" />
+                                <button type="button" class="btn btn-outline-secondary"
+                                    @onclick="ToggleConfirmPasswordVisibility">
+                                    @(showConfirmPassword ? "Hide" : "Show")
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => registerRequest.ConfirmPassword)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="displayName" class="form-label">Display Name <span
+                                    class="text-muted">(optional)</span></label>
+                            <InputText id="displayName" class="form-control" @bind-Value="registerRequest.DisplayName"
+                                placeholder="How should we call you?" />
+                            <ValidationMessage For="@(() => registerRequest.DisplayName)" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Creating account...</span>
+                            }
+                            else
+                            {
+                                <span>Create Account</span>
+                            }
+                        </button>
+                    </EditForm>
+
+                    <div class="text-center mt-3">
+                        <p class="mb-0">Already have an account? <a href="/login">Login here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerRequest = new();
+    private bool isLoading = false;
+    private bool showPassword = false;
+    private bool showConfirmPassword = false;
+    private string? errorMessage;
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private void ToggleConfirmPasswordVisibility()
+    {
+        showConfirmPassword = !showConfirmPassword;
+    }
+
+    private async Task HandleRegisterAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var (success, error) = await AuthService.RegisterAsync(registerRequest);
+
+            if (success)
+            {
+                // Redirect to home page on successful registration (user is auto-logged in)
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                // Display error message
+                errorMessage = error ?? "Registration failed. Please try again.";
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

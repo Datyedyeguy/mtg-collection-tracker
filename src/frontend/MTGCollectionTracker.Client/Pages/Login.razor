@@ -1,0 +1,103 @@
+@page "/login"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@using MTGCollectionTracker.Shared.DTOs.Auth
+
+<PageTitle>Login - MTG Collection Tracker</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Login</h3>
+
+                    <EditForm Model="@loginRequest" OnValidSubmit="HandleLoginAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email" class="form-control" @bind-Value="loginRequest.Email"
+                                placeholder="your@email.com" />
+                            <ValidationMessage For="@(() => loginRequest.Email)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <input id="password" type="@(showPassword ? "text" : "password")" class="form-control"
+                                    @bind="loginRequest.Password" placeholder="Enter your password" />
+                                <button type="button" class="btn btn-outline-secondary"
+                                    @onclick="TogglePasswordVisibility">
+                                    @(showPassword ? "Hide" : "Show")
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => loginRequest.Password)" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Logging in...</span>
+                            }
+                            else
+                            {
+                                <span>Login</span>
+                            }
+                        </button>
+                    </EditForm>
+
+                    <div class="text-center mt-3">
+                        <p class="mb-0">Don't have an account? <a href="/register">Register here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginRequest = new();
+    private bool isLoading = false;
+    private bool showPassword = false;
+    private string? errorMessage;
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private async Task HandleLoginAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var (success, error) = await AuthService.LoginAsync(loginRequest);
+
+            if (success)
+            {
+                // Redirect to home page on successful login
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                // Display error message
+                errorMessage = error ?? "Login failed. Please try again.";
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
