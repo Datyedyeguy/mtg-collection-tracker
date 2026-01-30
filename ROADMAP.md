@@ -52,6 +52,15 @@
 
 **Priority Tasks:**
 
+- [ ] **🔴 URGENT: Enforce solution file consistency** 
+  - Problem: Client.Tests was only in Frontend.slnx, not main MTGCollectionTracker.slnx
+  - Impact: Local `dotnet test` gave false confidence (only ran 28 backend tests, skipped 49 frontend tests)
+  - Solution options:
+    - [ ] Pre-commit hooks that validate all .csproj files are in solution
+    - [ ] GitHub Actions workflow to check solution file consistency
+    - [ ] Script to auto-sync projects to solution files
+  - Related: Main solution has 3 files (MTGCollectionTracker.slnx, Backend.slnx, Frontend.slnx) that can drift
+
 - [x] **Create Shared DTOs project** ✅
   - [x] MTGCollectionTracker.Shared (.NET Standard 2.1)
   - [x] Define DTOs for API contracts (Auth DTOs)
@@ -74,6 +83,9 @@
   - [x] Refresh token mechanism (with SHA256 hashing)
   - [x] Auth endpoints (/api/auth/register, /api/auth/login, /api/auth/refresh, /api/auth/logout)
   - [x] Password hashing (Identity uses PBKDF2 by default)
+  - [x] Authentication UI (Login, Register, Logout pages with validation)
+  - [x] AuthService with error handling and loading states
+  - [x] Shared ApiRoutes for compile-time route safety (ADR-019)
 - [ ] **Build core API endpoints**
   - [ ] Collections endpoints (GET, POST, DELETE)
   - [ ] Cards search endpoint

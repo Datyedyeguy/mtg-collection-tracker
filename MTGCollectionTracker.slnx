@@ -15,5 +15,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MTGCollectionTracker.Api.Tests/MTGCollectionTracker.Api.Tests.csproj" />
+    <Project Path="tests/MTGCollectionTracker.Client.Tests/MTGCollectionTracker.Client.Tests.csproj" />
   </Folder>
 </Solution>
