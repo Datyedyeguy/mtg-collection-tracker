@@ -19,11 +19,9 @@ namespace MTGCollectionTracker.Client.Tests.Services;
 [TestClass]
 public class AuthServiceTests
 {
-    private HttpClient _mockHttpClient = null!;
     private ITokenStorageService _mockTokenStorage = null!;
     private CustomAuthStateProvider _mockAuthStateProvider = null!;
     private NavigationManager _mockNavigationManager = null!;
-    private AuthService _authService = null!;
 
     [TestInitialize]
     public void Setup()
@@ -33,7 +31,7 @@ public class AuthServiceTests
         _mockNavigationManager = Substitute.For<NavigationManager>();
 
         // Note: HttpClient with mocking requires RichardSzalay.MockHttp or similar
-        // For now, these tests document expected behavior but won't compile without proper HTTP mocking
+        // For now, these tests document expected behavior but won't run without proper HTTP mocking
         // This serves as documentation of test requirements for future implementation
     }
 

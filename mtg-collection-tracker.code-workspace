@@ -2,43 +2,43 @@
   "folders": [
     {
       "path": ".",
-      "name": "📁 Root"
+      "name": "📁 Root",
     },
     {
       "path": "src/backend",
-      "name": "🔧 Backend (ASP.NET)"
+      "name": "🔧 Backend (ASP.NET)",
     },
     {
       "path": "src/frontend",
-      "name": "⚛️ Frontend (Blazor)"
+      "name": "⚛️ Frontend (Blazor)",
     },
     {
       "path": "src/desktop",
-      "name": "🖥️ Desktop (WPF)"
+      "name": "🖥️ Desktop (WPF)",
     },
     {
       "path": "src/shared",
-      "name": "📦 Shared Libraries"
+      "name": "📦 Shared Libraries",
     },
     {
       "path": "src/utilities",
-      "name": "🔨 Utilities"
+      "name": "🔨 Utilities",
     },
     {
       "path": "infrastructure",
-      "name": "☁️ Infrastructure (Bicep)"
+      "name": "☁️ Infrastructure (Bicep)",
     },
     {
       "path": "docs",
-      "name": "📚 Documentation"
-    }
+      "name": "📚 Documentation",
+    },
   ],
   "settings": {
     // Global editor settings
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.fixAll": "explicit",
-      "source.organizeImports": "explicit"
+      "source.organizeImports": "explicit",
     },
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
@@ -51,32 +51,32 @@
     "[csharp]": {
       "editor.defaultFormatter": "ms-dotnettools.csharp",
       "editor.tabSize": 4,
-      "editor.insertSpaces": true
+      "editor.insertSpaces": true,
     },
 
     // Blazor / C# Razor settings
     "[typescript]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
       "editor.tabSize": 2,
-      "editor.insertSpaces": true
+      "editor.insertSpaces": true,
     },
     "[typescriptreact]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
       "editor.tabSize": 2,
-      "editor.insertSpaces": true
+      "editor.insertSpaces": true,
     },
     "[javascript]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
       "editor.tabSize": 2,
-      "editor.insertSpaces": true
+      "editor.insertSpaces": true,
     },
     "[json]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
-      "editor.tabSize": 2
+      "editor.tabSize": 2,
     },
     "[jsonc]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
-      "editor.tabSize": 2
+      "editor.tabSize": 2,
     },
 
     // Markdown settings
@@ -85,14 +85,14 @@
       "editor.quickSuggestions": {
         "comments": "off",
         "strings": "off",
-        "other": "off"
-      }
+        "other": "off",
+      },
     },
 
     // Azure Bicep settings
     "[bicep]": {
       "editor.tabSize": 2,
-      "editor.insertSpaces": true
+      "editor.insertSpaces": true,
     },
 
     // Search exclusions
@@ -102,14 +102,14 @@
       "**/obj": true,
       "**/.vs": true,
       "**/dist": true,
-      "**/out": true
+      "**/out": true,
     },
 
     // File exclusions
     "files.exclude": {
       "**/.vs": true,
       "**/bin": true,
-      "**/obj": true
+      "**/obj": true,
     },
 
     // Git settings
@@ -118,7 +118,8 @@
 
     // Terminal settings
     "terminal.integrated.defaultProfile.windows": "PowerShell",
-    "dotnet.formatting.organizeImportsOnFormat": true
+    "dotnet.formatting.organizeImportsOnFormat": true,
+    "powershell.cwd": "📁 Root",
   },
   "extensions": {
     "recommendations": [
@@ -144,8 +145,8 @@
       // Already installed - AI Assistants
       "github.copilot",
       "github.copilot-chat",
-      "continue.continue"
-    ]
+      "continue.continue",
+    ],
   },
   "launch": {
     "version": "0.2.0",
@@ -161,11 +162,11 @@
         "stopAtEntry": false,
         "serverReadyAction": {
           "action": "openExternally",
-          "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+          "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
         },
         "env": {
-          "ASPNETCORE_ENVIRONMENT": "Development"
-        }
+          "ASPNETCORE_ENVIRONMENT": "Development",
+        },
       },
       {
         "name": ".NET: Debug Desktop Client",
@@ -176,7 +177,7 @@
         "args": [],
         "cwd": "${workspaceFolder:🖥️ Desktop (WPF)}/MTGALogParser",
         "console": "internalConsole",
-        "stopAtEntry": false
+        "stopAtEntry": false,
       },
       {
         "name": ".NET: Debug CardTranslator",
@@ -187,7 +188,7 @@
         "args": [],
         "cwd": "${workspaceFolder:🔨 Utilities}/CardTranslator",
         "console": "integratedTerminal",
-        "stopAtEntry": false
+        "stopAtEntry": false,
       },
       {
         "name": "Chrome: Debug Frontend",
@@ -195,15 +196,15 @@
         "request": "launch",
         "url": "http://localhost:5173",
         "webRoot": "${workspaceFolder:⚛️ Frontend (Blazor)}/src",
-        "preLaunchTask": "frontend-dev"
-      }
+        "preLaunchTask": "frontend-dev",
+      },
     ],
     "compounds": [
       {
         "name": "🚀 Full Stack (Backend + Frontend)",
-        "configurations": [".NET: Debug Backend API", "Chrome: Debug Frontend"]
-      }
-    ]
+        "configurations": [".NET: Debug Backend API", "Chrome: Debug Frontend"],
+      },
+    ],
   },
   "tasks": {
     "version": "2.0.0",
@@ -215,23 +216,23 @@
         "args": ["build", "${workspaceFolder}/MTGCollectionTracker.sln"],
         "group": {
           "kind": "build",
-          "isDefault": true
+          "isDefault": true,
         },
-        "problemMatcher": "$msCompile"
+        "problemMatcher": "$msCompile",
       },
       {
         "label": "clean",
         "type": "shell",
         "command": "dotnet",
         "args": ["clean", "${workspaceFolder}/MTGCollectionTracker.sln"],
-        "problemMatcher": "$msCompile"
+        "problemMatcher": "$msCompile",
       },
       {
         "label": "restore",
         "type": "shell",
         "command": "dotnet",
         "args": ["restore", "${workspaceFolder}/MTGCollectionTracker.sln"],
-        "problemMatcher": "$msCompile"
+        "problemMatcher": "$msCompile",
       },
       {
         "label": "test",
@@ -240,9 +241,9 @@
         "args": ["test", "${workspaceFolder}/MTGCollectionTracker.sln"],
         "group": {
           "kind": "test",
-          "isDefault": true
+          "isDefault": true,
         },
-        "problemMatcher": "$msCompile"
+        "problemMatcher": "$msCompile",
       },
       {
         "label": "backend-run",
@@ -251,10 +252,10 @@
         "args": [
           "run",
           "--project",
-          "${workspaceFolder}/src/backend/MTGCollectionTracker.Api/MTGCollectionTracker.Api.csproj"
+          "${workspaceFolder}/src/backend/MTGCollectionTracker.Api/MTGCollectionTracker.Api.csproj",
         ],
         "problemMatcher": "$msCompile",
-        "isBackground": true
+        "isBackground": true,
       },
       {
         "label": "frontend-install",
@@ -262,8 +263,8 @@
         "command": "npm",
         "args": ["install"],
         "options": {
-          "cwd": "${workspaceFolder}/src/frontend"
-        }
+          "cwd": "${workspaceFolder}/src/frontend",
+        },
       },
       {
         "label": "frontend-dev",
@@ -271,7 +272,7 @@
         "command": "npm",
         "args": ["run", "dev"],
         "options": {
-          "cwd": "${workspaceFolder}/src/frontend"
+          "cwd": "${workspaceFolder}/src/frontend",
         },
         "isBackground": true,
         "problemMatcher": {
@@ -281,14 +282,14 @@
             "line": 2,
             "column": 3,
             "severity": 4,
-            "message": 5
+            "message": 5,
           },
           "background": {
             "activeOnStart": true,
             "beginsPattern": ".",
-            "endsPattern": "ready in"
-          }
-        }
+            "endsPattern": "ready in",
+          },
+        },
       },
       {
         "label": "frontend-build",
@@ -296,8 +297,8 @@
         "command": "npm",
         "args": ["run", "build"],
         "options": {
-          "cwd": "${workspaceFolder}/src/frontend"
-        }
+          "cwd": "${workspaceFolder}/src/frontend",
+        },
       },
       {
         "label": "bicep-build",
@@ -307,9 +308,9 @@
           "bicep",
           "build",
           "--file",
-          "${workspaceFolder}/infrastructure/main.bicep"
-        ]
-      }
-    ]
-  }
+          "${workspaceFolder}/infrastructure/main.bicep",
+        ],
+      },
+    ],
+  },
 }

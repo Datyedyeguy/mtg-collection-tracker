@@ -142,6 +142,18 @@
   - Decision: Should be resolved before Phase 4 (Azure deployment) - build warnings in CI/CD pipelines
   - Recommendation: Option 1 (upgrade to net10.0) - simplest, no desktop client constraints yet
 
+- [ ] **Pre-commit validation enforcement** - Prevent broken builds from reaching CI/CD
+  - Problem: Debug builds pass locally but Release builds fail in GitHub Actions (e.g., unused field warnings)
+  - Current: Manual validation required (`dotnet build --configuration Release`)
+  - Solution options:
+    - Option 1: Git pre-commit hooks (runs Release build before commit)
+    - Option 2: GitHub Actions status check required before merge (already in place, but reactive)
+    - Option 3: VS Code task with Release build + test (`Ctrl+Shift+B` or command palette)
+    - Option 4: Document best practice in CONTRIBUTING.md ("always test Release build before push")
+  - Recommendation: Combination of Option 1 (pre-commit hook) + Option 4 (documentation)
+  - Benefits: Catches compiler warnings treated as errors, ensures CI/CD parity locally
+  - Note: Pre-commit hooks can be bypassed with `git commit --no-verify` if needed
+
 **Nice to Have (Defer to Later):**
 
 - [ ] **HTTP mocking strategy for frontend tests (Decision pending - see ADR-018)**
