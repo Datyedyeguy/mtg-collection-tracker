@@ -1,6 +1,6 @@
 # MTG Collection Tracker - Roadmap
 
-**Last Updated**: January 13, 2026
+**Last Updated**: February 2, 2026
 **Current Phase**: Phase 2 - Backend Foundation & Frontend Development
 
 ---
@@ -34,6 +34,19 @@
   - [x] ADR-014: Cost alerts at $75/$125/$150
   - [x] ADR-015: MTGA log parsing approach
 
+#### Phase 2: Infrastructure & Code Quality (Completed Feb 2, 2026)
+
+- [x] **Upgrade to .NET 10**
+  - [x] Upgraded MTGCollectionTracker.Shared from netstandard2.1 to net10.0
+  - [x] Eliminated Blazor hot reload warnings
+  - [x] Consistent .NET 10 across entire solution
+- [x] **Pre-Commit Validation**
+  - [x] Created `validate-solutions.ps1` script to check solution consistency
+  - [x] Created `pre-commit.ps1` hook for Release build validation
+  - [x] Created `setup-hooks.ps1` for easy installation
+  - [x] Updated CONTRIBUTING.md with developer notes
+  - [x] Cross-platform support (Windows batch wrapper, Unix shell script)
+
 ---
 
 ## 🚧 Current Focus
@@ -51,15 +64,6 @@
   - [ ] Set up GitHub Secrets for Azure (defer until Phase 4)
 
 **Priority Tasks:**
-
-- [ ] **🔴 URGENT: Enforce solution file consistency** 
-  - Problem: Client.Tests was only in Frontend.slnx, not main MTGCollectionTracker.slnx
-  - Impact: Local `dotnet test` gave false confidence (only ran 28 backend tests, skipped 49 frontend tests)
-  - Solution options:
-    - [ ] Pre-commit hooks that validate all .csproj files are in solution
-    - [ ] GitHub Actions workflow to check solution file consistency
-    - [ ] Script to auto-sync projects to solution files
-  - Related: Main solution has 3 files (MTGCollectionTracker.slnx, Backend.slnx, Frontend.slnx) that can drift
 
 - [x] **Create Shared DTOs project** ✅
   - [x] MTGCollectionTracker.Shared (.NET Standard 2.1)
@@ -143,28 +147,18 @@
 
 **Technical Debt / Warnings:**
 
-- [ ] **Blazor WebAssembly dotnet watch warning** - .NET Standard 2.1 Shared project causes hot reload warnings
-  - Warning: "Found project reference without a matching metadata reference"
-  - Root cause: Mixing .NET Standard 2.1 (Shared) with .NET 10 (Blazor WebAssembly)
-  - Impact: Cosmetic warning, hot reload doesn't work for Shared project changes (requires manual rebuild)
-  - Solution options:
-    - Option 1: Upgrade MTGCollectionTracker.Shared from netstandard2.1 to net10.0
-    - Option 2: Multi-target Shared project: `<TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>`
-    - Option 3: Accept warning (not recommended - warnings should be treated as errors)
-  - Decision: Should be resolved before Phase 4 (Azure deployment) - build warnings in CI/CD pipelines
-  - Recommendation: Option 1 (upgrade to net10.0) - simplest, no desktop client constraints yet
+- [x] **Blazor WebAssembly dotnet watch warning** - ✅ RESOLVED (Feb 2, 2026)
+  - Upgraded MTGCollectionTracker.Shared from netstandard2.1 to net10.0
+  - Removed System.ComponentModel.Annotations package (included in .NET 10)
+  - Hot reload warnings eliminated
 
-- [ ] **Pre-commit validation enforcement** - Prevent broken builds from reaching CI/CD
-  - Problem: Debug builds pass locally but Release builds fail in GitHub Actions (e.g., unused field warnings)
-  - Current: Manual validation required (`dotnet build --configuration Release`)
-  - Solution options:
-    - Option 1: Git pre-commit hooks (runs Release build before commit)
-    - Option 2: GitHub Actions status check required before merge (already in place, but reactive)
-    - Option 3: VS Code task with Release build + test (`Ctrl+Shift+B` or command palette)
-    - Option 4: Document best practice in CONTRIBUTING.md ("always test Release build before push")
-  - Recommendation: Combination of Option 1 (pre-commit hook) + Option 4 (documentation)
-  - Benefits: Catches compiler warnings treated as errors, ensures CI/CD parity locally
-  - Note: Pre-commit hooks can be bypassed with `git commit --no-verify` if needed
+- [x] **Pre-commit validation enforcement** - ✅ IMPLEMENTED (Feb 2, 2026)
+  - Implemented Git pre-commit hook (`scripts/pre-commit.ps1`)
+  - Validates Release builds before commit
+  - Validates solution file consistency (all projects in main solution)
+  - Setup script (`scripts/setup-hooks.ps1`) for easy installation
+  - Documented in CONTRIBUTING.md
+  - Can be bypassed with `git commit --no-verify` when needed
 
 **Nice to Have (Defer to Later):**
 
