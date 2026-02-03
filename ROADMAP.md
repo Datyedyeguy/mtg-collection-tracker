@@ -181,23 +181,46 @@
 
 **Key Deliverables:**
 
+- [ ] **Research foil/finish tracking strategy**
+  - [ ] Analyze Scryfall finishes array: ["nonfoil", "foil", "etched"]
+  - [ ] Handle foil-only cards (finishes: ["foil"])
+  - [ ] Decide: Separate columns (FoilQuantity, EtchedQuantity) vs JSONB field
+  - [ ] Consider Arena style variants vs finishes
+  - [ ] User expectations research (separate tracking or combined?)
+  - [ ] Update Card and CollectionEntry entities based on findings
 - [ ] Build ScryfallSync console app
-  - [ ] Download bulk data from Scryfall API
+  - [ ] Download bulk data from Scryfall API (Default Cards - 501 MB)
   - [ ] Parse JSON and map to Card entities
   - [ ] Bulk insert to PostgreSQL (~111k cards)
-  - [ ] Handle updates and new sets
+  - [ ] Handle updates and new sets (daily sync)
+  - [ ] Store finishes array in Card entity
+  - [ ] Add Scryfall attribution/credit in UI footer
 - [ ] Optimize card search queries
-  - [ ] Add full-text search indexes
+  - [ ] Add full-text search indexes on card name
   - [ ] Implement autocomplete endpoint
   - [ ] Cache frequent searches
 - [ ] Test with real card data
-  - [ ] Verify all Arena cards mapped correctly
+  - [ ] Verify all Arena cards mapped correctly (via arena_id)
   - [ ] Test collection imports with large datasets
   - [ ] Performance testing with 10k+ card collections
+- [ ] Display card images from Scryfall
+  - [ ] Use image_uris JSONB field (hotlink to Scryfall CDN)
+  - [ ] Support multiple sizes (small, normal, large, png)
+  - [ ] Handle missing images gracefully (placeholder)
 
 ---
 
 ### Phase 4: Azure Deployment & CI/CD
+
+**Pre-Deployment Research:**
+
+- [ ] **Research pricing strategy and sources**
+  - [ ] Evaluate pricing sources: TCGPlayer, CardKingdom, Scryfall bulk data
+  - [ ] Understand pricing per finish: usd, usd_foil, usd_etched
+  - [ ] Update frequency requirements (daily? on-demand?)
+  - [ ] Historical pricing data needs (price trends/charts?)
+  - [ ] Consider card condition pricing (NM, LP, MP, HP) if applicable
+  - [ ] Decide: Add Prices field to Card entity or separate PriceHistory table?
 
 **Infrastructure as Code:**
 
@@ -291,10 +314,15 @@
   - [ ] Validate deck legality by format
   - [ ] Track card allocation (which deck uses which cards)
   - [ ] Import from Moxfield/Archidekt URLs
-- [ ] Add paper location tracking
-  - [ ] Specify storage location per card
-  - [ ] Location autocomplete (Deck, Binder 1, Box A, etc.)
-  - [ ] Filter by location
+- [ ] **Implement Container/Location tracking system**
+  - [ ] Design: Create Container and ContainerEntry entities
+  - [ ] Container types: Deck, Binder, Box
+  - [ ] Track unallocated vs allocated quantity per collection entry
+  - [ ] Remember source container when moving cards
+  - [ ] "Return to source" functionality when removing from deck
+  - [ ] Filter/search by location
+  - [ ] Location autocomplete and management UI
+  - [ ] Replaces simple string Location field with proper entity relationships
 - [ ] Write user documentation
   - [ ] Getting started guide
   - [ ] Import/export tutorials
