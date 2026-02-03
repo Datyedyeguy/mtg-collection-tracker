@@ -14,3 +14,42 @@ This project exists primarily to:
 - Build a full-stack application with modern technologies
 
 If you're interested in similar learning goals, feel free to fork and adapt!
+
+## Developer Notes
+
+> **This section is for the primary developer (me!) - not for external contributors yet.**
+
+### Pre-Commit Hook Setup
+
+To catch build issues before commits, install the pre-commit hook:
+
+```bash
+.\scripts\setup-hooks.ps1
+```
+
+This automatically validates before each commit:
+
+- ✅ Release build succeeds (catches warnings-as-errors)
+- ✅ All projects are in `MTGCollectionTracker.slnx`
+
+**Bypass when needed:** `git commit --no-verify`
+
+### Quick Reference
+
+**Build in Release mode** (do this before pushing):
+
+```bash
+dotnet build MTGCollectionTracker.slnx --configuration Release
+```
+
+**Run all tests**:
+
+```bash
+dotnet test MTGCollectionTracker.slnx
+```
+
+**Validate solution consistency**:
+
+```bash
+.\scripts\validate-solutions.ps1
+```

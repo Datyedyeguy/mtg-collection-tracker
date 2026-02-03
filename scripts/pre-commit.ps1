@@ -1,0 +1,106 @@
+#!/usr/bin/env pwsh
+<#
+.SYNOPSIS
+    Git pre-commit hook for MTG Collection Tracker
+
+.DESCRIPTION
+    This hook runs automatically before 'git commit' completes.
+    It performs the following validations:
+
+    1. Release Build Check - Ensures code compiles in Release mode
+       (catches warnings that are treated as errors in CI/CD)
+
+    2. Solution Consistency - Verifies all projects are in main solution
+       (prevents tests from being skipped)
+
+    If any validation fails, the commit is aborted with an error message.
+
+.NOTES
+    - This hook can be bypassed with: git commit --no-verify
+    - Install this hook by running: .\scripts\setup-hooks.ps1
+    - Exit Code 0 = All validations passed, commit proceeds
+    - Exit Code 1 = Validation failed, commit aborted
+
+.EXAMPLE
+    # Normal commit workflow (hook runs automatically)
+    git add .
+    git commit -m "feat: add new feature"
+
+    # Bypass hook if needed (use sparingly!)
+    git commit --no-verify -m "wip: temporary checkpoint"
+#>
+
+$ErrorActionPreference = 'Stop'
+
+# Colors for output
+$Green = [System.ConsoleColor]::Green
+$Red = [System.ConsoleColor]::Red
+$Cyan = [System.ConsoleColor]::Cyan
+$Yellow = [System.ConsoleColor]::Yellow
+
+Write-Host "`n" -NoNewline
+Write-Host "=======================================================" -ForegroundColor $Cyan
+Write-Host "  MTG Collection Tracker - Pre-Commit Validation" -ForegroundColor $Cyan
+Write-Host "=======================================================" -ForegroundColor $Cyan
+
+# Get repository root
+$RepoRoot = git rev-parse --show-toplevel
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "❌ Failed to find Git repository root" -ForegroundColor $Red
+    exit 1
+}
+
+$ValidationsPassed = 0
+$ValidationsTotal = 2
+
+# ============================================================================
+# Validation 1: Release Build Check
+# ============================================================================
+Write-Host "`n[1/$ValidationsTotal] 🔨 Building in Release configuration..." -ForegroundColor $Cyan
+
+# Run dotnet build with Release configuration
+# This catches warnings that are treated as errors (e.g., unused fields)
+# We use --no-restore to speed this up since restore happens less frequently
+dotnet build "$RepoRoot\MTGCollectionTracker.slnx" --configuration Release --no-restore --verbosity quiet
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "        ✅ Release build succeeded" -ForegroundColor $Green
+    $ValidationsPassed++
+}
+else {
+    Write-Host "`n        ❌ Release build failed!" -ForegroundColor $Red
+    Write-Host "        💡 Fix compilation errors before committing" -ForegroundColor $Yellow
+    Write-Host "        💡 Or bypass with: git commit --no-verify`n" -ForegroundColor $Yellow
+    exit 1
+}
+
+# ============================================================================
+# Validation 2: Solution Consistency Check
+# ============================================================================
+Write-Host "`n[2/$ValidationsTotal] 📋 Validating solution consistency..." -ForegroundColor $Cyan
+
+# Run the solution validation script
+& "$RepoRoot\scripts\validate-solutions.ps1"
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "        ✅ Solution validation passed" -ForegroundColor $Green
+    $ValidationsPassed++
+}
+else {
+    Write-Host "`n        ❌ Solution validation failed!" -ForegroundColor $Red
+    Write-Host "        💡 Add missing projects to MTGCollectionTracker.slnx" -ForegroundColor $Yellow
+    Write-Host "        💡 Or bypass with: git commit --no-verify`n" -ForegroundColor $Yellow
+    exit 1
+}
+
+# ============================================================================
+# Success!
+# ============================================================================
+Write-Host "`n" -NoNewline
+Write-Host "=======================================================" -ForegroundColor $Green
+Write-Host "  ✅ All validations passed ($ValidationsPassed/$ValidationsTotal)" -ForegroundColor $Green
+Write-Host "  Proceeding with commit..." -ForegroundColor $Green
+Write-Host "=======================================================" -ForegroundColor $Green
+Write-Host ""
+
+exit 0
