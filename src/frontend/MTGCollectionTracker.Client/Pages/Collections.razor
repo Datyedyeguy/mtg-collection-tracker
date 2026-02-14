@@ -1,0 +1,247 @@
+@page "/collections"
+@attribute [Authorize]
+@inject ICollectionService CollectionService
+@using Microsoft.AspNetCore.Authorization
+@using MTGCollectionTracker.Shared.DTOs.Collections
+@using MTGCollectionTracker.Shared.Enums
+
+<PageTitle>My Collection - MTG Collection Tracker</PageTitle>
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>My Collection</h2>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label for="platformSelect" class="form-label">Platform</label>
+            <select id="platformSelect" class="form-select" @onchange="OnPlatformChanged" disabled="@isLoading">
+                <option value="">All Platforms</option>
+                <option value="@Platform.Paper">Paper</option>
+                <option value="@Platform.Arena">Arena</option>
+                <option value="@Platform.Mtgo">MTGO</option>
+            </select>
+        </div>
+        <div class="col-md-8 d-flex align-items-end">
+            @if (collection != null && !isLoading)
+            {
+                <div class="text-muted">
+                    @collection.TotalUniqueCards unique cards (@collection.TotalCards total copies)
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading your collection...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+    else if (collection != null && collection.Entries.Count == 0)
+    {
+        <div class="card text-center py-5">
+            <div class="card-body">
+                <h4 class="text-muted mb-3">Your collection is empty</h4>
+                <p class="text-muted">
+                    @if (selectedPlatform.HasValue)
+                    {
+                        <span>You don't have any cards on @selectedPlatform.Value yet.</span>
+                    }
+                    else
+                    {
+                        <span>You haven't added any cards yet.</span>
+                    }
+                </p>
+                <p class="text-muted small">
+                    Once we integrate Scryfall data and implement card search, you'll be able to add cards here!
+                </p>
+            </div>
+        </div>
+    }
+    else if (collection != null)
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Card Name</th>
+                        <th>Set</th>
+                        <th>Collector #</th>
+                        <th>Platform</th>
+                        <th>Quantity</th>
+                        <th>Acquired Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in collection.Entries)
+                    {
+                        <tr>
+                            <td>@entry.CardName</td>
+                            <td><span class="badge bg-secondary">@entry.SetCode.ToUpper()</span></td>
+                            <td>@entry.CollectorNumber</td>
+                            <td>
+                                @switch (entry.Platform)
+                                {
+                                    case Platform.Paper:
+                                        <span class="badge bg-success">Paper</span>
+                                        break;
+                                    case Platform.Arena:
+                                        <span class="badge bg-primary">Arena</span>
+                                        break;
+                                    case Platform.Mtgo:
+                                        <span class="badge bg-info">MTGO</span>
+                                        break;
+                                }
+                            </td>
+                            <td>@entry.Quantity</td>
+                            <td>@(entry.AcquiredDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* Pagination controls *@
+        @if (collection.TotalPages > 1)
+        {
+            <nav aria-label="Collection pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(!collection.HasPreviousPage ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => LoadPageAsync(currentPage - 1)"
+                                disabled="@(!collection.HasPreviousPage || isLoading)">
+                            Previous
+                        </button>
+                    </li>
+
+                    @* Show up to 5 page numbers around current page *@
+                    @{
+                        int startPage = Math.Max(1, currentPage - 2);
+                        int endPage = Math.Min(collection.TotalPages, currentPage + 2);
+
+                        // Show first page
+                        if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <button class="page-link" @onclick="() => LoadPageAsync(1)" disabled="@isLoading">1</button>
+                            </li>
+                            if (startPage > 2)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+                        }
+
+                        // Show pages around current
+                        for (int i = startPage; i <= endPage; i++)
+                        {
+                            var pageNum = i;
+                            <li class="page-item @(currentPage == pageNum ? "active" : "")">
+                                <button class="page-link" @onclick="() => LoadPageAsync(pageNum)" disabled="@isLoading">
+                                    @pageNum
+                                </button>
+                            </li>
+                        }
+
+                        // Show last page
+                        if (endPage < collection.TotalPages)
+                        {
+                            if (endPage < collection.TotalPages - 1)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+                            <li class="page-item">
+                                <button class="page-link" @onclick="() => LoadPageAsync(collection.TotalPages)" disabled="@isLoading">
+                                    @collection.TotalPages
+                                </button>
+                            </li>
+                        }
+                    }
+
+                    <li class="page-item @(!collection.HasNextPage ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => LoadPageAsync(currentPage + 1)"
+                                disabled="@(!collection.HasNextPage || isLoading)">
+                            Next
+                        </button>
+                    </li>
+                </ul>
+                <div class="text-center text-muted small">
+                    Page @currentPage of @collection.TotalPages
+                </div>
+            </nav>
+        }
+    }
+</div>
+
+@code {
+    private CollectionResponseDto? collection;
+    private Platform? selectedPlatform;
+    private int currentPage = 1;
+    private const int PageSize = 50;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCollectionAsync();
+    }
+
+    private async Task OnPlatformChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+
+        if (string.IsNullOrEmpty(value))
+        {
+            selectedPlatform = null;
+        }
+        else if (Enum.TryParse<Platform>(value, out var platform))
+        {
+            selectedPlatform = platform;
+        }
+
+        // Reset to page 1 when changing platform
+        currentPage = 1;
+        await LoadCollectionAsync();
+    }
+
+    private async Task LoadPageAsync(int page)
+    {
+        if (page < 1 || (collection != null && page > collection.TotalPages))
+        {
+            return;
+        }
+
+        currentPage = page;
+        await LoadCollectionAsync();
+    }
+
+    private async Task LoadCollectionAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        var (data, error) = await CollectionService.GetCollectionAsync(selectedPlatform, currentPage, PageSize);
+
+        if (error != null)
+        {
+            errorMessage = error;
+            collection = null;
+        }
+        else
+        {
+            collection = data;
+        }
+
+        isLoading = false;
+    }
+}

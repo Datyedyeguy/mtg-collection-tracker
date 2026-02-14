@@ -29,6 +29,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     /// <summary>
+    /// Card metadata synced from Scryfall.
+    /// </summary>
+    public DbSet<Card> Cards => Set<Card>();
+
+    /// <summary>
+    /// User collection entries (cards owned by users).
+    /// </summary>
+    public DbSet<CollectionEntry> CollectionEntries => Set<CollectionEntry>();
+
+    /// <summary>
     /// Configure entity relationships, indexes, and constraints.
     /// </summary>
     protected override void OnModelCreating(ModelBuilder builder)
@@ -71,7 +81,77 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasDefaultValueSql("NOW()");
         });
 
-        // Future entities (Cards, Collections, Decklists) will be configured here
-        // as we build out those features
+        // Configure Card
+        builder.Entity<Card>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+
+            // Scryfall ID must be unique
+            entity.HasIndex(c => c.ScryfallId).IsUnique();
+
+            // Index on OracleId for finding all printings of a card
+            entity.HasIndex(c => c.OracleId);
+
+            // Index on card name for search
+            entity.HasIndex(c => c.Name);
+
+            // Composite index on set + collector number (unique constraint)
+            entity.HasIndex(c => new { c.SetCode, c.CollectorNumber }).IsUnique();
+
+            // Index on Arena ID for Arena imports
+            entity.HasIndex(c => c.ArenaId).HasFilter("\"ArenaId\" IS NOT NULL");
+
+            // Index on MTGO ID for MTGO imports
+            entity.HasIndex(c => c.MtgoId).HasFilter("\"MtgoId\" IS NOT NULL");
+
+            // Store Platform enum as string in database
+            entity.Property(c => c.CreatedAt)
+                .HasDefaultValueSql("NOW()");
+
+            entity.Property(c => c.UpdatedAt)
+                .HasDefaultValueSql("NOW()");
+        });
+
+        // Configure CollectionEntry
+        builder.Entity<CollectionEntry>(entity =>
+        {
+            entity.HasKey(ce => ce.Id);
+
+            // Index on UserId for finding user's collection
+            entity.HasIndex(ce => ce.UserId);
+
+            // Index on Platform for filtering by platform
+            entity.HasIndex(ce => ce.Platform);
+
+            // Composite index for common query patterns (user + card + platform)
+            entity.HasIndex(ce => new { ce.UserId, ce.CardId, ce.Platform });
+
+            // Composite index for user + platform queries (optimizes filtered collection views)
+            entity.HasIndex(ce => new { ce.UserId, ce.Platform });
+
+            // Store Platform enum as string in database
+            entity.Property(ce => ce.Platform)
+                .HasConversion<string>();
+
+            // Relationship: CollectionEntry -> User
+            entity.HasOne(ce => ce.User)
+                .WithMany()
+                .HasForeignKey(ce => ce.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relationship: CollectionEntry -> Card
+            entity.HasOne(ce => ce.Card)
+                .WithMany(c => c.CollectionEntries)
+                .HasForeignKey(ce => ce.CardId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Property(ce => ce.CreatedAt)
+                .HasDefaultValueSql("NOW()");
+
+            entity.Property(ce => ce.UpdatedAt)
+                .HasDefaultValueSql("NOW()");
+        });
+
+        // Future entities (Decklists, etc.) will be configured here
     }
 }

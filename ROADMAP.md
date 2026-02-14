@@ -1,7 +1,7 @@
 # MTG Collection Tracker - Roadmap
 
-**Last Updated**: February 2, 2026
-**Current Phase**: Phase 2 - Backend Foundation & Frontend Development
+**Last Updated**: February 14, 2026
+**Current Phase**: Phase 2 - Backend Foundation & Frontend Development (Collections Viewing Complete)
 
 ---
 
@@ -33,6 +33,25 @@
   - [x] ADR-013: GitHub Actions for CI/CD
   - [x] ADR-014: Cost alerts at $75/$125/$150
   - [x] ADR-015: MTGA log parsing approach
+
+#### Phase 2: Backend Foundation & Frontend Development (Major Progress - Feb 14, 2026)
+
+- [x] **Collections Feature - Viewing Implementation** ✅ (Feb 14, 2026)
+  - [x] Card and CollectionEntry entities with full EF configuration
+  - [x] Database migration with optimized indexes
+  - [x] Composite indexes for performance (UserId + Platform queries)
+  - [x] Collections GET API with pagination (GET /api/collections?platform=&page=&pageSize=)
+  - [x] Pagination with server-side aggregation (efficient for large datasets)
+  - [x] Platform filtering (Paper/Arena/MTGO)
+  - [x] Input validation (page/pageSize limits)
+  - [x] Collections UI with platform dropdown and pagination controls
+  - [x] Empty state handling with helpful messaging
+  - [x] Authorization header integration (JWT tokens in requests)
+  - [x] Comprehensive tests (12 controller tests, all passing)
+  - [x] Performance optimizations (SQL projections, database aggregation)
+  - [x] Shared DTOs (CollectionEntryDto, CollectionResponseDto)
+  - [x] ApiRoutes updated for collections endpoints
+  - [ ] **Collections Management (Phase 3)**: Add/edit/remove cards, search, import/export
 
 #### Phase 2: Infrastructure & Code Quality (Completed Feb 2, 2026)
 
@@ -71,21 +90,25 @@
   - [ ] Validation attributes and models (deferred - using Data Annotations)
 - [x] **Create ASP.NET Core 10 Web API project** ✅
   - [x] Project structure (Controllers, Services, Middleware)
-  - [x] Configure Kestrel and HTTPS
-  - [ ] ~~Add Swagger/OpenAPI documentation~~ (skipped - using .http files)
-  - [x] Configure dependency injection
-- [x] **Set up Entity Framework Core with PostgreSQL** ✅
-  - [x] Create MTGCollectionTracker.Data project
-  - [x] Install Npgsql.EntityFrameworkCore.PostgreSQL
-  - [x] Create DbContext (AppDbContext.cs)
-  - [x] Define entity models (User, RefreshToken - Card, CollectionEntry, Decklist pending)
-  - [x] Configure relationships and indexes
-  - [x] Generate and apply first migration
-- [x] **Implement authentication system** ✅
-  - [x] ASP.NET Core Identity setup
-  - [x] JWT token generation and validation middleware
-  - [x] Refresh token mechanism (with SHA256 hashing)
-  - [x] Auth endpoints (/api/auth/register, /api/auth/login, /api/auth/refresh, /api/auth/logout)
+- [x] **Build core API endpoints** (Partial ✅)
+  - [x] Collections GET endpoint with pagination and filtering ✅
+  - [ ] Collections POST endpoint (add cards to collection - Phase 3)
+  - [ ] Collections PUT endpoint (update quantities - Phase 3)
+  - [ ] Collections DELETE endpoint (remove cards - Phase 3)
+  - [ ] Cards search endpoint (Phase 3 - needs Scryfall data)ts (add/remove cards - Phase 3)
+  - [ ] Cards search endpoint (Phase 3)
+  - [ ] User profile endpoints (deferred)
+  - [x] Health check endpoint ✅
+- [x] **Create test projects** ✅
+  - [x] MTGCollectionTracker.Api.Tests (unit tests with MSTest, NSubstitute, Shouldly)
+  - [x] MTGCollectionTracker.Client.Tests (frontend service tests)
+  - [x] CollectionsController tests (12 tests covering pagination, filtering, auth)
+  - [ ] Integration tests infrastructure (TestContainers for PostgreSQL) - deferred
+  - [x] Test JwtService (28 tests)
+  - [x] Test CustomAuthStateProvider (token parsing, auth state management)
+  - [x] Test TokenStorageService (localStorage interactions)
+  - [x] AuthServiceTests created (documented test requirements, HTTP mocking deferred)
+  - [x] All 80 tests passing ✅ster, /api/auth/login, /api/auth/refresh, /api/auth/logout)
   - [x] Password hashing (Identity uses PBKDF2 by default)
   - [x] Authentication UI (Login, Register, Logout pages with validation)
   - [x] AuthService with error handling and loading states
@@ -122,16 +145,26 @@
   - [x] Login page with form validation and password visibility toggle
   - [x] Registration page with password requirements (12 char minimum)
   - [x] Token storage (localStorage via TokenStorageService)
-  - [x] Auth state management (CustomAuthStateProvider)
-  - [x] Navigation menu with AuthorizeView (Login/Register when anonymous, Logout when authenticated)
-  - [ ] Protected routes (can add [Authorize] to pages as needed)
-- [ ] **Build basic collection view**
-  - [ ] Display user's collection
-  - [ ] Card search and filtering
-  - [ ] Basic pagination
+  - [x] Protected routes with [Authorize] attribute ✅
+- [x] **Build basic collection view** ✅ (Feb 14, 2026)
+  - [x] Display user's collection with pagination (50 cards/page)
+  - [x] Platform filtering dropdown (All/Paper/Arena/MTGO)
+  - [x] Pagination controls with smart page number display
+  - [x] Empty state with helpful messaging
+  - [x] **Advanced collection features (Phase 3)**:
+    - [ ] Add cards to collection (needs card search first)
+    - [ ] Edit card quantities
+    - [ ] Remove cards from collection
+    - [ ] Card search and filtering (needs Scryfall data)
+    - [ ] Import from CSV/Moxfield/Manabox
+    - [ ] Export to various formats
+  - [x] Card count display (unique cards vs total copies)
+  - [ ] Card search and filtering (Phase 3 - needs Scryfall data)
 - [x] **Local development setup** ✅
   - [x] Docker Compose for PostgreSQL (local dev database)
   - [x] Connection string configuration
+  - [x] Run API and frontend together locally (dotnet watch)
+  - [x] End-to-end user flows working (register → login → view collection)ation
   - [ ] Run API and frontend together locally
   - [ ] Test end-to-end user flows
 
@@ -142,8 +175,75 @@
   - Option 1: Add `/api/v1/` now for practice
   - Option 2: Defer until desktop client ships (Phase 5)
   - Option 3: Defer until breaking changes needed
-  - Consider: URL versioning vs header versioning vs query string
-  - Note: ApiRoutes.cs structure already supports easy migration to versioned routes
+  - Upgraded MTGCollectionTracker.Shared from netstandard2.1 to net10.0
+  - Removed System.ComponentModel.Annotations package (included in .NET 10)
+  - Hot reload warnings eliminated
+
+- [x] **Pre-commit validation enforcement** - ✅ IMPLEMENTED (Feb 2, 2026)
+  - Implemented Git pre-commit hook (`scripts/pre-commit.ps1`)
+  - Validates Release builds before commit
+  - Validates solution file consistency (all projects in main solution)
+  - Setup script (`scripts/setup-hooks.ps1`) for easy installation
+  - Documented in CONTRIBUTING.md
+  - Can be bypassed with `git commit --no-verify` when needed
+
+- [x] **Authorization header not sent with API requests** - ✅ RESOLVED (Feb 14, 2026)
+  - CollectionService now directly adds JWT token to requests
+  - Simpler approach than DelegatingHandler pattern
+  - Works reliably in Blazor WebAssembly
+
+**Performance Considerations (Addressed - Feb 14, 2026):**
+
+- [x] **Pagination implemented** - Essential for large collections (10k+ cards)
+  - Server-side pagination with LIMIT/OFFSET
+  - Configurable page size (default: 50, max: 100)
+  - Smart page navigation UI (shows up to 5 pages at once)
+
+### Phase 3: Scryfall Integration & Card Management (NEXT - Ready to Start!)
+
+**Strategy**: First populate the database with card data, then build search/add features on top of it.
+
+**Key Deliverables:**
+
+- [ ] **Build ScryfallSync utility** (Top Priority - Foundation for everything else!)
+  - [ ] Create console application in src/utilities/ScryfallSync
+  - [ ] Download Scryfall bulk data (Default Cards endpoint - ~501 MB)
+  - [ ] Parse JSON and map to Card entities
+  - [ ] Bulk insert to PostgreSQL (~111,000 cards)
+  - [ ] Handle card images (store URLs, not download files)
+  - [ ] Add command-line arguments (--force-refresh, --dry-run)
+  - [ ] Progress reporting and error handling
+  - [ ] Add Scryfall attribution/credit in UI footer
+
+- [ ] **Collections Management Features** (After Scryfall data loaded)
+  - [ ] Card search API endpoint (search by name, set, type, etc.)
+  - [ ] Card search UI with autocomplete
+  - [ ] Add card to collection (POST /api/collections)
+  - [ ] Edit card quantity (PUT /api/collections/{id})
+  - [ ] Remove card from collection (DELETE /api/collections/{id})
+  - [ ] Display card images in collection view
+  - [ ] Card details modal/page
+- [ ] **Import/Export Features**
+  - [ ] Import from Moxfield CSV
+  - [ ] Import from Manabox CSV
+  - [ ] Import from generic CSV format
+  - [ ] Export collection to CSV
+  - [ ] Validation and error reporting for imports
+  - [ ] Create console application in src/utilities/ScryfallSync
+  - [ ] Download Scryfall bulk data (Default Cards endpoint - ~501 MB)
+  - [ ] Parse JSON and map to Card entities
+  - [ ] Bulk insert to PostgreSQL (~111,000 cards)
+  - [ ] Handle card images (store URLs, not download files)
+  - [ ] Add command-line arguments (--force-refresh, --dry-run)
+  - [ ] Progress reporting and error handling
+  - [ ] Add Scryfall attribution/credit in UI footer
+    - Index on (UserId, CardId, Platform) for uniqueness
+  - Partial indexes on ArenaId/MtgoId (only where NOT NULL)
+
+**Nice to Have (Defer to Later):**
+
+- Consider: URL versioning vs header versioning vs query string
+- Note: ApiRoutes.cs structure already supports easy migration to versioned routes
 
 **Technical Debt / Warnings:**
 

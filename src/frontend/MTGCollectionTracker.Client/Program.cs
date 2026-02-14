@@ -20,6 +20,9 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<ITokenStorageService, TokenStorageService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// Register collection service
+builder.Services.AddScoped<ICollectionService, CollectionService>();
+
 // Register custom authentication state provider
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>

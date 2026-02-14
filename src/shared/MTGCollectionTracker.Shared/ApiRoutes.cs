@@ -55,13 +55,19 @@ public static class ApiRoutes
     /// </summary>
     public const string Health = "/api/health";
 
+    /// <summary>
+    /// Base path for collection endpoints.
+    /// </summary>
+    public const string Collections = $"{ApiBase}/collections";
+
+    /// <summary>
+    /// Get user's collection: GET /api/collections?platform={platform}
+    /// Optional query param: platform (Paper, Arena, Mtgo)
+    /// Returns: CollectionResponseDto with entries and metadata
+    /// </summary>
+    public const string CollectionsGet = Collections;
+
     // Future endpoints (uncomment as they're implemented):
-    // 
-    // /// <summary>
-    // /// Get user's collection: GET /api/collections
-    // /// Returns: List of collection entries for authenticated user
-    // /// </summary>
-    // public const string Collections = "/api/collections";
     //
     // /// <summary>
     // /// Search cards: GET /api/cards?q={query}

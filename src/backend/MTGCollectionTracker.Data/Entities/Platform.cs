@@ -1,27 +1,29 @@
+// Platform enum is defined in MTGCollectionTracker.Shared.Enums.Platform
+// This file re-exports it in the Data.Entities namespace for backward compatibility
+// with existing code that references MTGCollectionTracker.Data.Entities.Platform.
+
 namespace MTGCollectionTracker.Data.Entities;
 
+using SharedPlatform = MTGCollectionTracker.Shared.Enums.Platform;
+
 /// <summary>
-/// Represents the platform where a Magic: The Gathering card exists.
+/// Platform enum - re-exported from Shared project.
+/// The actual enum definition is in MTGCollectionTracker.Shared.Enums.Platform.
 /// </summary>
-/// <remarks>
-/// This enum is stored as a string in the database (via EF Core HasConversion)
-/// to maintain readability in PostgreSQL.
-/// Database values: "Paper", "Arena", "Mtgo"
-/// </remarks>
 public enum Platform
 {
     /// <summary>
-    /// Physical paper cards that you can hold.
+    /// Physical paper cards.
     /// </summary>
-    Paper,
+    Paper = SharedPlatform.Paper,
 
     /// <summary>
-    /// Magic: The Gathering Arena (digital platform).
+    /// MTG Arena digital platform.
     /// </summary>
-    Arena,
+    Arena = SharedPlatform.Arena,
 
     /// <summary>
-    /// Magic Online (MTGO) - older digital platform.
+    /// Magic Online digital platform.
     /// </summary>
-    Mtgo
+    Mtgo = SharedPlatform.Mtgo
 }

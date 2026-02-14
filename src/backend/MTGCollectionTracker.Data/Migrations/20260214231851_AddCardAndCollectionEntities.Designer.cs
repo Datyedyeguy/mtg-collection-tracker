@@ -3,6 +3,7 @@ using System;
 using MTGCollectionTracker.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MTGCollectionTracker.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260214231851_AddCardAndCollectionEntities")]
+    partial class AddCardAndCollectionEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,8 +237,6 @@ namespace MTGCollectionTracker.Data.Migrations
                     b.HasIndex("Platform");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "Platform");
 
                     b.HasIndex("UserId", "CardId", "Platform");
 
