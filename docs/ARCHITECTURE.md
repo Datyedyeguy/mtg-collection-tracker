@@ -43,10 +43,10 @@
 
 ### Backend (ASP.NET Core 10)
 
-- RESTful Web API
-- JWT authentication
-- EF Core + PostgreSQL
-- Hosted on Azure App Service (Linux)
+- RESTful Web API (.NET 10)
+- JWT authentication with refresh token rotation
+- EF Core 10 + PostgreSQL
+- Hosted on Azure App Service (Linux B1 tier)
 
 ### Desktop Client (WPF)
 
@@ -65,14 +65,12 @@
 ## Data Flow
 
 1. **MTGA Collection Sync**:
-
    - User enables "Detailed Logs" in MTGA settings
    - Desktop client monitors log files
    - Parses collection JSON
    - Uploads to backend API
 
 2. **Manual Import**:
-
    - User uploads CSV (Moxfield, Manabox, etc.)
    - Frontend sends to API
    - API parses and stores in database

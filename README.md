@@ -47,9 +47,9 @@ The MTG Arena desktop client automatically extracts your collection from **MTGA 
 
 ## Technology Stack
 
-- **Frontend**: Blazor WebAssembly (.NET 8), MudBlazor/Blazorise
-- **Backend**: ASP.NET Core 8 Web API, PostgreSQL
-- **Desktop Client**: WPF (.NET 8) with auto-update
+- **Frontend**: Blazor WebAssembly (.NET 10), Bootstrap CSS
+- **Backend**: ASP.NET Core 10 Web API, PostgreSQL
+- **Desktop Client**: WPF (.NET 10) with auto-update (future)
 - **Hosting**: Azure (Static Web Apps + App Service)
 - **Infrastructure**: Azure Bicep (Infrastructure as Code)
 
@@ -57,18 +57,30 @@ The MTG Arena desktop client automatically extracts your collection from **MTGA 
 
 🚧 **In Active Development** - Not yet publicly available
 
-Current phase: Setting up infrastructure and core services
+Current phase: Phase 2 - Backend Foundation & Frontend Development
 
-See [PROJECT_STATUS.md](PROJECT_STATUS.md) for detailed progress.
+**Completed:**
+
+- ✅ Authentication (Register, Login, JWT + Refresh Tokens)
+- ✅ Collections viewing (with pagination and filtering)
+- ✅ Database schema (Users, Cards, Collections)
+- ✅ 80 passing tests
+
+**Next:**
+
+- 🔄 Scryfall data integration (Phase 3)
+- 🔄 Card search functionality
+- 🔄 Add/edit/remove cards from collection
+
+See [ROADMAP.md](ROADMAP.md) for detailed progress.
 
 ## Development
 
 ### Prerequisites
 
-- .NET 8 SDK
-- Node.js 18+
-- PostgreSQL 14+
-- Azure CLI (for deployments)
+- .NET 10 SDK
+- PostgreSQL 14+ (or Docker for local development)
+- Azure CLI (for deployments - optional for local dev)
 - Visual Studio 2022 or VS Code
 
 ### Local Setup
@@ -78,18 +90,20 @@ See [PROJECT_STATUS.md](PROJECT_STATUS.md) for detailed progress.
 git clone https://github.com/YOUR_USERNAME/mtg-collection-tracker.git
 cd mtg-collection-tracker
 
+# Start PostgreSQL (Docker)
+docker compose up -d
+
 # Backend API
 cd src/backend/MTGCollectionTracker.Api
 dotnet restore
-dotnet ef database update
-dotnet run
+dotnet run --launch-profile https
 
-# Frontend
-cd src/frontend
-npm install
-npm run dev
+# Frontend (in new terminal)
+cd src/frontend/MTGCollectionTracker.Client
+dotnet restore
+dotnet run --launch-profile https
 
-# Desktop Client (when available)
+# Desktop Client (future - Phase 4)
 cd src/desktop/MTGALogParser
 dotnet restore
 dotnet run
@@ -115,7 +129,7 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed setup instructions.
        ▼                            ▼
 ┌─────────────────┐         ┌──────────────┐
 │   App Service   │         │  MTG Arena   │
-│  (.NET 8 API)   │         │  Log Files   │
+│  (.NET 10 API)  │         │  Log Files   │
 └────────┬────────┘         └──────────────┘
          │
          ▼
@@ -142,8 +156,6 @@ Monthly Azure costs (with optimizations):
 - **Total**: ~$26/month ($312/year)
 
 **With Visual Studio Enterprise subscription**: Effectively FREE (includes $150/month Azure credits)
-
-See [docs/COSTS.md](docs/COSTS.md) for detailed cost analysis and monitoring setup.
 
 ## Security
 
