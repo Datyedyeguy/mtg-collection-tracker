@@ -219,7 +219,7 @@
   - [x] Error handling and statistics display
   - [x] ADR-020: Multi-faced card storage architecture
   - [x] User-Agent header compliance with Scryfall API requirements
-  - [ ] Add Scryfall attribution/credit in UI footer
+  - [x] Add Scryfall attribution/credit in UI footer ✅ (Feb 16, 2026)
 
 - [ ] **Collections Management Features** (After Scryfall data loaded)
   - [ ] Card search API endpoint (search by name, set, type, etc.)

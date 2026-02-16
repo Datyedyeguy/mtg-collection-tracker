@@ -75,3 +75,37 @@ main {
         padding-right: 1.5rem !important;
     }
 }
+
+.footer {
+    margin-top: 3rem;
+    padding: 2rem 1rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+    .footer-content p {
+        margin: 0.5rem 0;
+    }
+
+    .footer-content a {
+        color: #0066cc;
+        text-decoration: none;
+    }
+
+        .footer-content a:hover {
+            text-decoration: underline;
+        }
+
+.footer .disclaimer {
+    font-size: 0.75rem;
+    color: #868e96;
+    margin-top: 1rem;
+}
