@@ -134,6 +134,7 @@ __azurite_db*__.json
 # TypeScript
 *.tsbuildinfo
 
-# Scryfall cache
+# Scryfall cache and bulk data
 scryfall-cache/
 *.scryfall.json
+src/utilities/ScryfallSync/data/

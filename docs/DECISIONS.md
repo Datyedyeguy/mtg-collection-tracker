@@ -53,6 +53,7 @@ Each decision is documented in a separate file following this structure:
 ### Data & External Services
 
 - [ADR-010: Scryfall as Card Data Source](decisions/ADR-010-scryfall-card-data.md)
+- [ADR-020: Multi-Faced Card Storage and Search Strategy](decisions/ADR-020-multi-faced-card-storage.md)
 
 ## Future Decisions
 
@@ -74,5 +75,5 @@ Document any changes as new ADRs (don't edit existing ones - mark as "Superseded
 
 ---
 
-**Last Updated**: January 14, 2026
-**Next Review**: April 14, 2026
+**Last Updated**: February 16, 2026
+**Next Review**: May 16, 2026

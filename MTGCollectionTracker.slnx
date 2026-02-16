@@ -12,6 +12,7 @@
   </Folder>
   <Folder Name="/src/utilities/">
     <Project Path="src/utilities/CardTranslator/CardTranslator.csproj" />
+    <Project Path="src/utilities/ScryfallSync/ScryfallSync.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MTGCollectionTracker.Api.Tests/MTGCollectionTracker.Api.Tests.csproj" />

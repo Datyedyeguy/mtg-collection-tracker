@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
+using MTGCollectionTracker.Shared.DTOs.Cards;
 
 namespace MTGCollectionTracker.Data.Entities;
 
@@ -118,16 +121,80 @@ public class Card
     /// </summary>
     public string? Legalities { get; set; }
 
-    // TODO: Add 'Finishes' field after researching foil/etched tracking
-    // - Store Scryfall's finishes array: ["nonfoil", "foil", "etched"]
-    // - Needed for validation (can't add foil if card is nonfoil-only)
-    // - Research items:
-    //   1. How to handle foil-only cards?
-    //   2. Are etched foils significant enough to track separately?
-    //   3. Best database design: separate columns vs JSONB?
-    // - Phase 3 addition
+    /// <summary>
+    /// JSON array of available finishes for this card printing.
+    /// Example: ["nonfoil", "foil"] or ["nonfoil", "foil", "etched"]
+    /// Possible values: "nonfoil", "foil", "etched"
+    /// Used for validation - users can only add copies with finishes that exist.
+    /// Stored as JSONB in PostgreSQL.
+    /// </summary>
+    public string? Finishes { get; set; }
 
-    // TODO: Add 'Prices' field after determining pricing strategy
+    /// <summary>
+    /// Backing field for Faces property.
+    /// </summary>
+    private string? _faces;
+
+    /// <summary>
+    /// JSON array containing all card faces for multi-faced cards.
+    /// Null for single-faced cards.
+    ///
+    /// Internal storage - use CardFaces property for type-safe access.
+    /// Stored as JSONB in PostgreSQL.
+    /// </summary>
+    public string? Faces
+    {
+        get => _faces;
+        set
+        {
+            _faces = value;
+            _cardFaces = null; // Clear cache when underlying data changes
+        }
+    }
+
+    /// <summary>
+    /// Cached deserialized card faces to avoid repeated JSON parsing.
+    /// </summary>
+    private List<CardFaceDto>? _cardFaces;
+
+    /// <summary>
+    /// Typed access to card faces for multi-faced cards.
+    /// Null for single-faced cards.
+    ///
+    /// For transform cards (e.g., "Delver of Secrets // Insectile Aberration"):
+    /// - Contains both front and back face with complete data for each
+    ///
+    /// For modal DFCs (e.g., "Alrund, God of the Cosmos // Hakka, Whispering Raven"):
+    /// - Contains both faces that can be cast
+    ///
+    /// For reversible cards (Secret Lair promos):
+    /// - Contains same card with different artwork on each face
+    ///
+    /// This property provides type-safe access to the Faces JSON column.
+    /// Setting this property automatically serializes to the Faces column.
+    /// The deserialized value is cached to avoid repeated JSON parsing.
+    /// </summary>
+    [NotMapped]
+    public List<CardFaceDto>? CardFaces
+    {
+        get
+        {
+            if (_cardFaces == null && !string.IsNullOrEmpty(Faces))
+            {
+                _cardFaces = JsonSerializer.Deserialize<List<CardFaceDto>>(Faces);
+            }
+            return _cardFaces;
+        }
+        set
+        {
+            _cardFaces = value;
+            Faces = value == null || value.Count == 0
+                ? null
+                : JsonSerializer.Serialize(value);
+        }
+    }
+
+    // TODO: Add 'Prices' field after determining pricing strategy (Phase 4+)
     // - Need to research pricing sources: TCGPlayer, CardKingdom, Scryfall
     // - Separate prices per finish: usd, usd_foil, usd_etched
     // - Update frequency strategy (daily bulk data from Scryfall?)

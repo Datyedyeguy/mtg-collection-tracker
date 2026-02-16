@@ -104,6 +104,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             // Index on MTGO ID for MTGO imports
             entity.HasIndex(c => c.MtgoId).HasFilter("\"MtgoId\" IS NOT NULL");
 
+            // Configure JSONB columns (stored as string in C# but jsonb in PostgreSQL)
+            entity.Property(c => c.Colors).HasColumnType("jsonb");
+            entity.Property(c => c.ImageUris).HasColumnType("jsonb");
+            entity.Property(c => c.Legalities).HasColumnType("jsonb");
+            entity.Property(c => c.Faces).HasColumnType("jsonb");
+            entity.Property(c => c.Finishes).HasColumnType("jsonb");
+
             // Store Platform enum as string in database
             entity.Property(c => c.CreatedAt)
                 .HasDefaultValueSql("NOW()");

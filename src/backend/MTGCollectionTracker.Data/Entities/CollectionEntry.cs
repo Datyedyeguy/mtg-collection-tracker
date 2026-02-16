@@ -36,17 +36,20 @@ public class CollectionEntry
     public Platform Platform { get; set; }
 
     /// <summary>
-    /// How many copies of this card the user owns (1-999).
-    /// Currently combines all finishes (foil/nonfoil/etched).
+    /// How many nonfoil copies of this card the user owns (0-999).
     /// </summary>
-    /// <remarks>
-    /// TODO: Research foil/nonfoil/etched finish tracking
-    /// - Should we split into Quantity, FoilQuantity, EtchedQuantity?
-    /// - Or use JSONB field for flexible finish tracking?
-    /// - Edge cases: foil-only cards, etched variants
-    /// - Phase 3 decision after Scryfall bulk data research
-    /// </remarks>
     public int Quantity { get; set; }
+
+    /// <summary>
+    /// How many traditional foil copies of this card the user owns (0-999).
+    /// </summary>
+    public int FoilQuantity { get; set; }
+
+    /// <summary>
+    /// How many etched foil copies of this card the user owns (0-999).
+    /// Etched foils were introduced in Commander Legends (2020).
+    /// </summary>
+    public int EtchedQuantity { get; set; }
 
     /// <summary>
     /// Optional: When this card was acquired.

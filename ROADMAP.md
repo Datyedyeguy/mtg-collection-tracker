@@ -1,7 +1,7 @@
 # MTG Collection Tracker - Roadmap
 
-**Last Updated**: February 14, 2026
-**Current Phase**: Phase 2 - Backend Foundation & Frontend Development (Collections Viewing Complete)
+**Last Updated**: February 16, 2026
+**Current Phase**: Phase 3 - Scryfall Integration & Card Management (Scryfall Data Sync Complete)
 
 ---
 
@@ -199,20 +199,26 @@
   - Configurable page size (default: 50, max: 100)
   - Smart page navigation UI (shows up to 5 pages at once)
 
-### Phase 3: Scryfall Integration & Card Management (NEXT - Ready to Start!)
+### Phase 3: Scryfall Integration & Card Management (In Progress)
 
 **Strategy**: First populate the database with card data, then build search/add features on top of it.
 
 **Key Deliverables:**
 
-- [ ] **Build ScryfallSync utility** (Top Priority - Foundation for everything else!)
-  - [ ] Create console application in src/utilities/ScryfallSync
-  - [ ] Download Scryfall bulk data (Default Cards endpoint - ~501 MB)
-  - [ ] Parse JSON and map to Card entities
-  - [ ] Bulk insert to PostgreSQL (~111,000 cards)
-  - [ ] Handle card images (store URLs, not download files)
-  - [ ] Add command-line arguments (--force-refresh, --dry-run)
-  - [ ] Progress reporting and error handling
+- [x] **Build ScryfallSync utility** ✅ (Feb 16, 2026)
+  - [x] Create console application in src/utilities/ScryfallSync
+  - [x] Download Scryfall bulk data (Default Cards endpoint - ~501 MB)
+  - [x] Parse JSON and map to Card entities
+  - [x] Bulk insert to PostgreSQL (112,145 cards)
+  - [x] Handle card images (store Scryfall CDN URLs)
+  - [x] Add command-line arguments (--force-refresh, --dry-run, --bulk-type, --list-types)
+  - [x] Progress reporting (parsing + batch insert)
+  - [x] Local caching (data/ directory, 24-hour cache)
+  - [x] Multi-faced card support (transform, modal DFC, reversible cards)
+  - [x] Finishes tracking (nonfoil/foil/etched)
+  - [x] Error handling and statistics display
+  - [x] ADR-020: Multi-faced card storage architecture
+  - [x] User-Agent header compliance with Scryfall API requirements
   - [ ] Add Scryfall attribution/credit in UI footer
 
 - [ ] **Collections Management Features** (After Scryfall data loaded)

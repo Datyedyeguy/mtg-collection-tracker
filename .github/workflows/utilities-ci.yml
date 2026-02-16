@@ -1,0 +1,68 @@
+# Utilities CI Pipeline
+# Builds utility console applications (ScryfallSync, CardTranslator, etc.) on every push/PR to main
+#
+# Triggers:
+#   - Push to main branch (if utility files changed)
+#   - Pull requests targeting main (if utility files changed)
+#
+# Note: This validates that utilities compile correctly.
+# Deployment to Azure (for scheduled execution) is handled separately.
+#
+# Cost: Free for public repositories (unlimited minutes)
+
+name: Utilities CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/utilities/**"
+      - "src/backend/MTGCollectionTracker.Data/**" # ScryfallSync depends on Data
+      - "src/shared/**"
+      - "Directory.Build.props"
+      - ".github/workflows/utilities-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/utilities/**"
+      - "src/backend/MTGCollectionTracker.Data/**"
+      - "src/shared/**"
+      - "Directory.Build.props"
+      - ".github/workflows/utilities-ci.yml"
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Clone the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install .NET SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # Step 3: Build ScryfallSync
+      - name: Build ScryfallSync
+        run: dotnet build src/utilities/ScryfallSync/ScryfallSync.csproj --configuration Release
+
+      # Step 4: Build CardTranslator
+      - name: Build CardTranslator
+        run: dotnet build src/utilities/CardTranslator/CardTranslator.csproj --configuration Release
+
+      # Step 5: Test ScryfallSync (validate parsing with --dry-run)
+      # Note: Since we don't have sample Scryfall data in repo, we skip this for now
+      # Future: Add unit tests for ScryfallSync parsing logic
+      # - name: Test ScryfallSync parsing
+      #   run: dotnet test src/utilities/ScryfallSync.Tests/ScryfallSync.Tests.csproj --configuration Release
+
+      # Step 6: Display summary
+      - name: Display build summary
+        run: |
+          echo "✅ All utilities built successfully"
+          echo "📦 ScryfallSync: Ready for Azure deployment"
+          echo "📦 CardTranslator: Ready for local use"
