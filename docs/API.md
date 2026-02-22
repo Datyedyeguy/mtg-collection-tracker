@@ -284,21 +284,96 @@ Content-Type: application/json
 
 ---
 
-### Cards (Future - Phase 3)
+### Cards
 
 #### Search Cards
 
+**Endpoint:** `GET /api/cards`
+
+**Authorization:** None required
+
+**Query Parameters:**
+
+| Parameter      | Type    | Default | Description                                                                                              |
+| -------------- | ------- | ------- | -------------------------------------------------------------------------------------------------------- |
+| `q`            | string  | —       | Name search. Case-insensitive, partial match against card name and flavor name.                          |
+| `set`          | string  | —       | Filter by set code (e.g., `m21`, `znr`). Case-insensitive.                                               |
+| `type`         | string  | —       | Filter by type line (e.g., `Goblin`, `Instant`). Partial, case-insensitive.                              |
+| `allPrintings` | boolean | `false` | When `false` (default), one result per oracle card (de-duplicated). When `true`, all printings returned. |
+| `page`         | integer | `1`     | Page number (1-based).                                                                                   |
+| `pageSize`     | integer | `20`    | Results per page (1-100).                                                                                |
+
+**Deduplication (allPrintings=false):**
+
+When de-duplication is active, the API:
+
+1. Collects all oracle IDs from cards that match the filters (including flavor name matches)
+2. Fetches ALL printings of those oracle IDs from the full card table
+3. Picks a representative printing (preferring printings without a `FlavorName`)
+4. Records `MatchedFlavorName` + `MatchedImageUri` when the search matched via a flavor name and the representative printing doesn't show it
+
+**Example Requests:**
+
 ```http
-GET /api/cards/search?q=lightning+bolt&set=m21&page=1&pageSize=20
+# Search by name
+GET /api/cards?q=lightning+bolt
+
+# Search for a flavor name (showcase/Universe Beyond crossover)
+GET /api/cards?q=lone+commando
+
+# Filter by set
+GET /api/cards?set=m21&page=1&pageSize=20
+
+# Show all printings of Lightning Bolt
+GET /api/cards?q=lightning+bolt&allPrintings=true
 ```
 
-#### Get Card Details
+**Success Response (200 OK):**
+
+```json
+{
+  "cards": [
+    {
+      "id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+      "scryfallId": "e7c61540-8c83-4c4e-bc32-6f3a18f72f99",
+      "name": "Lightning Bolt",
+      "flavorName": null,
+      "setCode": "m21",
+      "collectorNumber": "152",
+      "rarity": "common",
+      "typeLine": "Instant",
+      "manaCost": "{R}",
+      "colors": ["R"],
+      "imageUri": "https://cards.scryfall.io/normal/front/...",
+      "matchedFlavorName": "Lightning, Lone Commando",
+      "matchedImageUri": "https://cards.scryfall.io/normal/front/..."
+    }
+  ],
+  "totalCount": 42,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 3,
+  "hasNextPage": true,
+  "hasPreviousPage": false,
+  "allPrintings": false
+}
+```
+
+**Notes:**
+
+- `matchedFlavorName` is non-null when the search matched a showcase/Universe Beyond printing via its flavor name but the representative card shown is a standard printing. Displayed as "aka: [flavor name]" in the UI.
+- `matchedImageUri` is non-null in the same scenario, used to display the art from the matched printing instead of the canonical one.
+- `flavorName` on the card itself is the flavor name of that specific printing (will be non-null for showcase/crossover cards).
+
+---
+
+#### Get Card Details (Future - Phase 4)
 
 ```http
 GET /api/cards/{id}
 ```
 
-#### Get Card by Scryfall ID
+#### Get Card by Scryfall ID (Future - Phase 4)
 
 ```http
 GET /api/cards/scryfall/{scryfallId}
@@ -415,6 +490,6 @@ When the API is running locally, Swagger UI is available at:
 
 ---
 
-**Last Updated:** February 14, 2026
+**Last Updated:** February 22, 2026
 **API Version:** v1
-**Next Update:** Phase 3 (Card search endpoints)
+**Next Update:** Phase 4 (Card details endpoint, collection management)

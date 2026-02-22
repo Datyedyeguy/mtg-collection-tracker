@@ -23,6 +23,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Register collection service
 builder.Services.AddScoped<ICollectionService, CollectionService>();
 
+// Register card search service (no auth required - card data is public)
+builder.Services.AddScoped<ICardService, CardService>();
+
 // Register custom authentication state provider
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>

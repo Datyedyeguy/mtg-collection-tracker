@@ -67,13 +67,20 @@ public static class ApiRoutes
     /// </summary>
     public const string CollectionsGet = Collections;
 
+    /// <summary>
+    /// Base path for card endpoints.
+    /// </summary>
+    public const string Cards = $"{ApiBase}/cards";
+
+    /// <summary>
+    /// Search cards: GET /api/cards?q={name}&amp;set={setCode}&amp;type={typeLine}&amp;page={page}&amp;pageSize={pageSize}
+    /// At least one of q, set, or type is required.
+    /// Returns: CardSearchResponseDto with matching cards and pagination info.
+    /// Does not require authentication — card data is public.
+    /// </summary>
+    public const string CardsSearch = Cards;
+
     // Future endpoints (uncomment as they're implemented):
-    //
-    // /// <summary>
-    // /// Search cards: GET /api/cards?q={query}
-    // /// Returns: Paginated card search results
-    // /// </summary>
-    // public const string Cards = "/api/cards";
     //
     // /// <summary>
     // /// Get user's decklists: GET /api/decklists

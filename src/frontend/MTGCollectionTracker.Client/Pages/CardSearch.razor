@@ -1,0 +1,294 @@
+@page "/cards"
+@inject ICardService CardService
+@using MTGCollectionTracker.Shared.DTOs.Cards
+
+<PageTitle>Search Cards - MTG Collection Tracker</PageTitle>
+
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>Card Search</h2>
+            <p class="text-muted">Search across 112,000+ cards synced from Scryfall.</p>
+        </div>
+    </div>
+
+    @* ── Search form ─────────────────────────────────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="nameInput" class="form-label fw-semibold">Card Name</label>
+                    <input id="nameInput" type="text" class="form-control" placeholder="e.g. Lightning Bolt"
+                           @bind="nameQuery" @bind:event="oninput" @onkeydown="OnKeyDown" disabled="@isLoading" />
+                </div>
+                <div class="col-md-3">
+                    <label for="setInput" class="form-label fw-semibold">Set Code</label>
+                    <input id="setInput" type="text" class="form-control" placeholder="e.g. m21" @bind="setQuery"
+                           @bind:event="oninput" @onkeydown="OnKeyDown" maxlength="10" disabled="@isLoading" />
+                </div>
+                <div class="col-md-3">
+                    <label for="typeInput" class="form-label fw-semibold">Type</label>
+                    <input id="typeInput" type="text" class="form-control" placeholder="e.g. Creature" @bind="typeQuery"
+                           @bind:event="oninput" @onkeydown="OnKeyDown" disabled="@isLoading" />
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col">
+                    <button class="btn btn-primary" @onclick="OnSearchClicked"
+                            disabled="@(isLoading || !HasSearchTerms)">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
+                        Search
+                    </button>
+                    @if (hasSearched)
+                    {
+                        <button class="btn btn-outline-secondary ms-2" @onclick="OnClearClicked" disabled="@isLoading">
+                            Clear
+                        </button>
+                    }
+                    <div class="form-check form-check-inline ms-4 align-self-center">
+                        <input class="form-check-input" type="checkbox" id="allPrintingsCheck" @bind="allPrintings"
+                               disabled="@isLoading" />
+                        <label class="form-check-label text-muted" for="allPrintingsCheck">
+                            Show all printings
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Results ────────────────────────────────────────────────────── *@
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+    else if (!hasSearched)
+    {
+        <div class="text-center py-5 text-muted">
+            <p class="fs-5">Enter a card name, set code, or type to search.</p>
+        </div>
+    }
+    else if (results != null && results.TotalCards == 0)
+    {
+        <div class="text-center py-5 text-muted">
+            <p class="fs-5">No cards found for your search.</p>
+            <p class="small">Try a different name, set code, or type.</p>
+        </div>
+    }
+    else if (results != null)
+    {
+        @* Results summary *@
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted small">
+                @results.TotalCards card@(results.TotalCards == 1 ? "" : "s") found
+                @if (!string.IsNullOrEmpty(results.Query))
+                {
+                    <span> for "<strong>@results.Query</strong>"</span>
+                }
+                — page @results.Page of @results.TotalPages
+            </span>
+        </div>
+
+        @* Card grid *@
+        <div class="row row-cols-2 row-cols-md-4 row-cols-lg-5 g-3 mb-4">
+            @foreach (var card in results.Cards)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm card-hover">
+                        @* Card image — when matched via a flavor-name printing, show that
+                           printing's art so the user sees what they searched for *@
+                        @{
+                            var displayImage = card.MatchedImageUri ?? card.ImageUri;
+                        }
+                        @if (!string.IsNullOrEmpty(displayImage))
+                        {
+                            <img src="@displayImage" class="card-img-top" alt="@card.Name" loading="lazy"
+                                 style="border-radius: 4.75% / 3.5%; aspect-ratio: 488/680; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            @* Placeholder for cards without images *@
+                            <div class="bg-secondary d-flex align-items-center justify-content-center text-white"
+                                 style="aspect-ratio: 488/680; border-radius: 4.75% / 3.5%;">
+                                <span class="text-center px-2 small">@card.Name</span>
+                            </div>
+                        }
+
+                        @* Card details *@
+                        <div class="card-body p-2">
+                            <p class="card-title mb-1 fw-semibold small lh-sm">@card.Name</p>
+                            @if (!string.IsNullOrEmpty(card.MatchedFlavorName))
+                            {
+                                <p class="mb-1 text-muted fst-italic" style="font-size: 0.68rem;">aka: @card.MatchedFlavorName</p>
+                            }
+                            <p class="card-text text-muted mt-1 mb-0" style="font-size: 0.7rem;">@card.TypeLine</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Pagination *@
+        @if (results.TotalPages > 1)
+        {
+            <nav aria-label="Card search pagination">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(results.Page <= 1 ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => LoadPageAsync(currentPage - 1)"
+                                disabled="@(results.Page <= 1 || isLoading)">
+                            Previous
+                        </button>
+                    </li>
+
+                    @{
+                        int startPage = Math.Max(1, currentPage - 2);
+                        int endPage = Math.Min(results.TotalPages, currentPage + 2);
+
+                        if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <button class="page-link" @onclick="() => LoadPageAsync(1)" disabled="@isLoading">1</button>
+                            </li>
+                            if (startPage > 2)
+                            {
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            }
+                        }
+
+                        for (int i = startPage; i <= endPage; i++)
+                        {
+                            var pageNum = i;
+                            <li class="page-item @(currentPage == pageNum ? "active" : "")">
+                                <button class="page-link" @onclick="() => LoadPageAsync(pageNum)" disabled="@isLoading">
+                                    @pageNum
+                                </button>
+                            </li>
+                        }
+
+                        if (endPage < results.TotalPages)
+                        {
+                            if (endPage < results.TotalPages - 1)
+                            {
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            }
+                            <li class="page-item">
+                                <button class="page-link" @onclick="() => LoadPageAsync(results.TotalPages)" disabled="@isLoading">
+                                    @results.TotalPages
+                                </button>
+                            </li>
+                        }
+                    }
+
+                    <li class="page-item @(results.Page >= results.TotalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => LoadPageAsync(currentPage + 1)"
+                                disabled="@(results.Page >= results.TotalPages || isLoading)">
+                            Next
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+</div>
+
+@* Hover effect for card tiles *@
+<style>
+    .card-hover {
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        cursor: default;
+    }
+
+    .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+    }
+</style>
+
+@code {
+    private string? nameQuery;
+    private string? setQuery;
+    private string? typeQuery;
+    private bool allPrintings;
+
+    private CardSearchResponseDto? results;
+    private int currentPage = 1;
+    private const int PageSize = 20;
+
+    private bool isLoading;
+    private bool hasSearched;
+    private string? errorMessage;
+
+    /// <summary>True when at least one search field contains non-whitespace text.</summary>
+    private bool HasSearchTerms =>
+    !string.IsNullOrWhiteSpace(nameQuery) ||
+    !string.IsNullOrWhiteSpace(setQuery) ||
+    !string.IsNullOrWhiteSpace(typeQuery);
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && HasSearchTerms && !isLoading)
+        {
+            await SearchAsync(page: 1);
+        }
+    }
+
+    private async Task OnSearchClicked()
+    {
+        await SearchAsync(page: 1);
+    }
+
+    private void OnClearClicked()
+    {
+        nameQuery = null;
+        setQuery = null;
+        typeQuery = null;
+        allPrintings = false;
+        results = null;
+        hasSearched = false;
+        errorMessage = null;
+        currentPage = 1;
+    }
+
+    private async Task LoadPageAsync(int page)
+    {
+        if (page < 1 || (results != null && page > results.TotalPages))
+        {
+            return;
+        }
+
+        await SearchAsync(page);
+    }
+
+    private async Task SearchAsync(int page)
+    {
+        isLoading = true;
+        errorMessage = null;
+        currentPage = page;
+
+        var (data, error) = await CardService.SearchAsync(
+        name: nameQuery,
+        set: setQuery,
+        type: typeQuery,
+        allPrintings: allPrintings,
+        page: currentPage,
+        pageSize: PageSize);
+
+        if (error != null)
+        {
+            errorMessage = error;
+            results = null;
+        }
+        else
+        {
+            results = data;
+        }
+
+        hasSearched = true;
+        isLoading = false;
+    }
+}

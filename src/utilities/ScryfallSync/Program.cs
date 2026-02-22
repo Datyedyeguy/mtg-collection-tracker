@@ -385,6 +385,9 @@ class Program
 
                     // These fields are always at top level (guaranteed by Scryfall API)
                     Name = element.GetProperty("name").GetString() ?? string.Empty,
+                    FlavorName = element.TryGetProperty("flavor_name", out var flavorName)
+                        ? flavorName.GetString()
+                        : null,
                     SetCode = element.GetProperty("set").GetString() ?? string.Empty,
                     CollectorNumber = element.GetProperty("collector_number").GetString() ?? string.Empty,
                     Rarity = element.GetProperty("rarity").GetString() ?? string.Empty,
@@ -503,27 +506,43 @@ class Program
         await context.Database.EnsureCreatedAsync();
 
         Console.WriteLine("   Loading existing cards...");
-        var existingCards = await context.Cards
-            .Select(c => new { c.ScryfallId, c.Id, c.UpdatedAt })
-            .ToDictionaryAsync(c => c.ScryfallId);
+        var existingCardData = await context.Cards
+            .Select(c => new { c.ScryfallId, c.SetCode, c.CollectorNumber, c.Id, c.CreatedAt })
+            .ToListAsync();
 
-        Console.WriteLine($"   Existing cards in database: {existingCards.Count:N0}");
+        // Primary lookup: by ScryfallId (fast path, covers 99%+ of cards)
+        var existingByScryfallId = existingCardData.ToDictionary(c => c.ScryfallId);
+
+        // Secondary lookup: by SetCode+CollectorNumber — handles cases where Scryfall
+        // rotates a card's UUID (the card is the same printing but gets a new ScryfallId).
+        // Without this, these cards would try to INSERT and hit the unique constraint.
+        var existingBySetAndNumber = existingCardData.ToDictionary(c => $"{c.SetCode}|{c.CollectorNumber}");
+
+        Console.WriteLine($"   Existing cards in database: {existingCardData.Count:N0}");
 
         var toInsert = new List<Card>();
         var toUpdate = new List<Card>();
 
         foreach (var card in cards)
         {
-            if (existingCards.TryGetValue(card.ScryfallId, out var existing))
+            if (existingByScryfallId.TryGetValue(card.ScryfallId, out var existing))
             {
-                // Update existing card
+                // ScryfallId match — standard update path
                 card.Id = existing.Id;
-                card.CreatedAt = existing.UpdatedAt; // Preserve original creation time
+                card.CreatedAt = existing.CreatedAt;
+                toUpdate.Add(card);
+            }
+            else if (existingBySetAndNumber.TryGetValue($"{card.SetCode}|{card.CollectorNumber}", out var existingByKey))
+            {
+                // Same set+number, different ScryfallId — Scryfall rotated the card's UUID.
+                // Treat as an update so we don't violate the unique constraint.
+                card.Id = existingByKey.Id;
+                card.CreatedAt = existingByKey.CreatedAt;
                 toUpdate.Add(card);
             }
             else
             {
-                // New card to insert
+                // Genuinely new card
                 toInsert.Add(card);
             }
         }

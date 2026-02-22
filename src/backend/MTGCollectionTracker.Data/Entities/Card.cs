@@ -40,6 +40,13 @@ public class Card
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Alternate flavor name for showcase/crossover printings (e.g., "Lightning, Lone Commando"
+    /// for a Final Fantasy printing of "Isshin, Two Heavens as One").
+    /// Null for standard printings.
+    /// </summary>
+    public string? FlavorName { get; set; }
+
+    /// <summary>
     /// The set code this card is from (e.g., "m21", "znr").
     /// </summary>
     public string SetCode { get; set; } = string.Empty;

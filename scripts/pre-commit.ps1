@@ -51,7 +51,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $ValidationsPassed = 0
-$ValidationsTotal = 2
+$ValidationsTotal = 3
 
 # ============================================================================
 # Validation 1: Release Build Check
@@ -89,6 +89,31 @@ if ($LASTEXITCODE -eq 0) {
 else {
     Write-Host "`n        ❌ Solution validation failed!" -ForegroundColor $Red
     Write-Host "        💡 Add missing projects to MTGCollectionTracker.slnx" -ForegroundColor $Yellow
+    Write-Host "        💡 Or bypass with: git commit --no-verify`n" -ForegroundColor $Yellow
+    exit 1
+}
+
+# ============================================================================
+# Validation 3: EF Core Pending Model Changes
+# ============================================================================
+Write-Host "`n[3/$ValidationsTotal] 🗄️  Checking for pending EF Core migrations..." -ForegroundColor $Cyan
+
+# EF Core 8+ CLI command: exits 0 if snapshot matches model, 1 if not.
+# This catches the case where an entity changed but 'dotnet ef migrations add' was not run.
+dotnet ef migrations has-pending-model-changes `
+    --project "$RepoRoot\src\backend\MTGCollectionTracker.Data" `
+    --startup-project "$RepoRoot\src\backend\MTGCollectionTracker.Api" `
+    --no-build 2>&1 | Out-Null
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "        ✅ No pending model changes" -ForegroundColor $Green
+    $ValidationsPassed++
+}
+else {
+    Write-Host "`n        ❌ EF Core model has changes without a migration!" -ForegroundColor $Red
+    Write-Host "        💡 Run: dotnet ef migrations add <Name>" -ForegroundColor $Yellow
+    Write-Host "               --project src/backend/MTGCollectionTracker.Data" -ForegroundColor $Yellow
+    Write-Host "               --startup-project src/backend/MTGCollectionTracker.Api" -ForegroundColor $Yellow
     Write-Host "        💡 Or bypass with: git commit --no-verify`n" -ForegroundColor $Yellow
     exit 1
 }

@@ -222,8 +222,16 @@
   - [x] Add Scryfall attribution/credit in UI footer ✅ (Feb 16, 2026)
 
 - [ ] **Collections Management Features** (After Scryfall data loaded)
-  - [ ] Card search API endpoint (search by name, set, type, etc.)
-  - [ ] Card search UI with autocomplete
+  - [x] Card search API endpoint (GET /api/cards?q=&set=&type=&page=&pageSize=) ✅ (Feb 21, 2026)
+  - [x] Card search UI with autocomplete ✅ (Feb 21, 2026)
+  - [ ] Card search: when set code is provided, show only images from that set (currently dedup may
+        serve a representative from a different set)
+  - [ ] Card search: handle art cards correctly — currently display as "Card // Card" because they
+        use the reversible_card layout with faces; needs a dedicated display path (single image,
+        no double-faced treatment)
+  - [ ] Card details page (/cards/{id}) — clicking a card opens a detail view showing full card
+        info (rules text, mana cost, type, legalities), all alternate printings with set/image,
+        and an "Add to collection" button; foundation for future price history, deck usage, etc.
   - [ ] Add card to collection (POST /api/collections)
   - [ ] Edit card quantity (PUT /api/collections/{id})
   - [ ] Remove card from collection (DELETE /api/collections/{id})
