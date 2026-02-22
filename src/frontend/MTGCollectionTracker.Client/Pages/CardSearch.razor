@@ -1,6 +1,8 @@
 @page "/cards"
+@attribute [Authorize]
 @inject ICardService CardService
 @using MTGCollectionTracker.Shared.DTOs.Cards
+@using Microsoft.AspNetCore.Authorization
 
 <PageTitle>Search Cards - MTG Collection Tracker</PageTitle>
 

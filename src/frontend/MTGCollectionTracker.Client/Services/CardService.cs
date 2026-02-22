@@ -9,8 +9,8 @@ using MTGCollectionTracker.Shared.DTOs.Cards;
 namespace MTGCollectionTracker.Client.Services;
 
 /// <summary>
-/// Service for searching cards via the public card search API.
-/// No authentication is required — card data is public.
+/// Service for searching cards via the card search API.
+/// Authentication is required — the bearer token is automatically attached by AuthorizationMessageHandler.
 /// </summary>
 public interface ICardService
 {
@@ -37,6 +37,7 @@ public interface ICardService
 
 /// <summary>
 /// Implementation of ICardService that calls the backend card search endpoint.
+/// Auth token is injected automatically by the AuthorizationMessageHandler in the HttpClient pipeline.
 /// </summary>
 public class CardService : ICardService
 {
@@ -93,6 +94,11 @@ public class CardService : ICardService
                 }
 
                 return (data, null);
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return (null, "You must be logged in to search cards.");
             }
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)

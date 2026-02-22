@@ -1,0 +1,10 @@
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Redirect unauthenticated users to the login page.
+        // Called automatically by AuthorizeRouteView when a [Authorize] page is visited without a token.
+        NavigationManager.NavigateTo("/login");
+    }
+}

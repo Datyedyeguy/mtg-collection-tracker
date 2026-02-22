@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using MTGCollectionTracker.Shared;
@@ -30,16 +29,15 @@ public interface ICollectionService
 
 /// <summary>
 /// Implementation of ICollectionService for calling backend collection endpoints.
+/// Auth token is injected automatically by the AuthorizationMessageHandler in the HttpClient pipeline.
 /// </summary>
 public class CollectionService : ICollectionService
 {
     private readonly HttpClient _httpClient;
-    private readonly ITokenStorageService _tokenStorage;
 
-    public CollectionService(HttpClient httpClient, ITokenStorageService tokenStorage)
+    public CollectionService(HttpClient httpClient)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _tokenStorage = tokenStorage ?? throw new ArgumentNullException(nameof(tokenStorage));
     }
 
     /// <inheritdoc />
@@ -50,14 +48,6 @@ public class CollectionService : ICollectionService
     {
         try
         {
-            // Get the access token and add it to the request
-            var token = await _tokenStorage.GetAccessTokenAsync();
-            if (!string.IsNullOrEmpty(token))
-            {
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", token);
-            }
-
             var url = ApiRoutes.CollectionsGet;
 
             // Build query parameters

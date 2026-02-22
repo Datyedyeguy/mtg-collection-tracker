@@ -361,6 +361,15 @@
   - [ ] Budget alerts ($75, $125, $150)
   - [ ] Cost anomaly detection
   - [ ] Weekly cost review reminders
+- [ ] **Observability and security monitoring (deployment prerequisite)**
+  - [ ] Enable Application Insights on App Service (request rates, failure rates, latency)
+  - [ ] Configure Serilog structured logging on the backend (JSON output → App Insights sink)
+  - [ ] Set up alerts for elevated 4xx/5xx error rates (could indicate scanning or abuse)
+  - [ ] Set up alerts for unusual request volumes per user (spike in card search calls, etc.)
+  - [ ] Enable App Service access logs — captures IP, user-agent, response times
+  - [ ] Add distributed tracing so slow queries are identifiable end-to-end
+  - [ ] Document runbook: what to do when an alert fires (block IP, revoke token, etc.)
+  - [ ] Consider rate limiting middleware (e.g. AspNetCoreRateLimit) in Phase 5 once patterns are clear
 - [ ] Deploy applications
   - [ ] Backend API to App Service
   - [ ] Frontend to Static Web Apps

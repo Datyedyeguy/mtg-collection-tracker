@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,8 +14,9 @@ namespace MTGCollectionTracker.Api.Controllers;
 
 /// <summary>
 /// Endpoints for searching and retrieving card data synced from Scryfall.
-/// Card data is public — no authentication is required to search cards.
+/// Authentication is required to prevent unauthenticated abuse of database-heavy search queries.
 /// </summary>
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class CardsController : ControllerBase

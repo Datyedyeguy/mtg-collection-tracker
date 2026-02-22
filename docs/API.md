@@ -290,7 +290,11 @@ Content-Type: application/json
 
 **Endpoint:** `GET /api/cards`
 
-**Authorization:** None required
+**Authorization:** Required (Bearer token)
+
+**Note on auth:** Card search hits the database with potentially expensive queries (112k+ cards,
+full-text filtering, multi-step deduplication). Putting it behind auth limits abuse to registered
+users only and gives us an identity to tie to any suspicious traffic patterns.
 
 **Query Parameters:**
 

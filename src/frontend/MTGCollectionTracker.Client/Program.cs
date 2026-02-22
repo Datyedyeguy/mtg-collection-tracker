@@ -23,7 +23,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Register collection service
 builder.Services.AddScoped<ICollectionService, CollectionService>();
 
-// Register card search service (no auth required - card data is public)
+// Register card service
 builder.Services.AddScoped<ICardService, CardService>();
 
 // Register custom authentication state provider
@@ -31,13 +31,24 @@ builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<CustomAuthStateProvider>());
 
-// Configure HttpClient to call our backend API
+// Configure HttpClient to call our backend API.
+// AuthorizationMessageHandler automatically attaches the JWT token to every outgoing request
+// when the user is logged in. If no token is present it skips the header gracefully,
+// so unauthenticated endpoints (login, register) still work fine.
 // In development: https://localhost:5001
 // In production: This will be configured via appsettings
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:5001";
-builder.Services.AddScoped(sp => new HttpClient
+builder.Services.AddScoped(sp =>
 {
-    BaseAddress = new Uri(apiBaseUrl)
+    var tokenStorage = sp.GetRequiredService<ITokenStorageService>();
+    var handler = new AuthorizationMessageHandler(tokenStorage)
+    {
+        InnerHandler = new HttpClientHandler()
+    };
+    return new HttpClient(handler)
+    {
+        BaseAddress = new Uri(apiBaseUrl)
+    };
 });
 
 await builder.Build().RunAsync();
