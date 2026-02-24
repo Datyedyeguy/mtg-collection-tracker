@@ -33,6 +33,14 @@ public interface ICardService
         bool allPrintings = false,
         int page = 1,
         int pageSize = 20);
+
+    /// <summary>
+    /// Retrieves full details for a single card printing, including rules text, legalities,
+    /// and a list of all other printings of the same card.
+    /// </summary>
+    /// <param name="id">Our internal database ID of the card printing.</param>
+    /// <returns>Tuple of (detail, errorMessage). One will always be null.</returns>
+    Task<(CardDetailDto? data, string? error)> GetByIdAsync(Guid id);
 }
 
 /// <summary>
@@ -110,6 +118,47 @@ public class CardService : ICardService
             }
 
             return (null, $"Search failed: {response.StatusCode}");
+        }
+        catch (HttpRequestException)
+        {
+            return (null, "Unable to connect to server. Please check your connection.");
+        }
+        catch (Exception ex)
+        {
+            return (null, $"An unexpected error occurred: {ex.Message}");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<(CardDetailDto? data, string? error)> GetByIdAsync(Guid id)
+    {
+        try
+        {
+            var url = ApiRoutes.CardsGetById(id);
+            var response = await _httpClient.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<CardDetailDto>();
+                if (data == null)
+                {
+                    return (null, "Invalid response from server.");
+                }
+
+                return (data, null);
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return (null, "You must be logged in to view card details.");
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return (null, "Card not found.");
+            }
+
+            return (null, $"Request failed: {response.StatusCode}");
         }
         catch (HttpRequestException)
         {

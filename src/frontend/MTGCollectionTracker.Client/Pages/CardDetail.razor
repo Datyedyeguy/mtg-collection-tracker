@@ -1,0 +1,360 @@
+@page "/cards/{Id:guid}"
+@attribute [Authorize]
+@inject ICardService CardService
+@using MTGCollectionTracker.Shared.DTOs.Cards
+@using Microsoft.AspNetCore.Authorization
+@using System.Globalization
+
+<PageTitle>@(card?.Name ?? "Card Details") - MTG Collection Tracker</PageTitle>
+
+<div class="container mt-4">
+
+    @* ── Breadcrumb ─────────────────────────────────────────────────── *@
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/cards">Card Search</a></li>
+            <li class="breadcrumb-item active" aria-current="page">
+                @if (isLoading) { <span>Loading…</span> }
+                else if (card != null) { @card.Name }
+                else { <span>Not found</span> }
+            </li>
+        </ol>
+    </nav>
+
+    @* ── Loading ─────────────────────────────────────────────────────── *@
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading card details…</span>
+            </div>
+            <p class="mt-2 text-muted">Loading card details…</p>
+        </div>
+    }
+
+    @* ── Error ───────────────────────────────────────────────────────── *@
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+
+    @* ── Card content ────────────────────────────────────────────────── *@
+    else if (card != null)
+    {
+        @* ── Overview row ────────────────────────────────────────────── *@
+        <div class="row g-4 mb-4">
+
+            @* Left: card image *@
+            <div class="col-md-4 d-flex flex-column align-items-center">
+                @if (!string.IsNullOrEmpty(DisplayImage))
+                {
+                    <img src="@DisplayImage" alt="@(ActiveFace?.Name ?? card.Name)"
+                         class="img-fluid shadow"
+                         style="border-radius: 4.75% / 3.5%; max-width: 340px; width: 100%;" />
+                }
+                else
+                {
+                    <div class="bg-secondary d-flex align-items-center justify-content-center text-white shadow"
+                         style="width:100%; max-width:340px; aspect-ratio:488/680; border-radius:4.75%/3.5%;">
+                        <span class="text-center px-3">@card.Name</span>
+                    </div>
+                }
+
+                @* Flip button for multi-faced cards *@
+                @if (card.IsMultiFaced && card.Faces != null && card.Faces.Count >= 2)
+                {
+                    var otherFaceName = card.Faces[showingFaceIndex == 0 ? 1 : 0].Name;
+                    <button class="btn btn-outline-secondary btn-sm mt-3" @onclick="ToggleFace">
+                        ⟳ Show @otherFaceName
+                    </button>
+                }
+            </div>
+
+            @* Right: card metadata *@
+            <div class="col-md-8">
+
+                @* Name + optional flavor name *@
+                <h2 class="mb-0">@card.Name</h2>
+                @if (!string.IsNullOrEmpty(card.FlavorName))
+                {
+                    <p class="text-muted fst-italic mb-1">aka @card.FlavorName</p>
+                }
+
+                @* Mana cost *@
+                @if (!string.IsNullOrEmpty(DisplayManaCost))
+                {
+                    <div class="mt-2 mb-1 d-flex align-items-center gap-2">
+                        <ManaCost Cost="@DisplayManaCost" />
+                        @if (card.Cmc > 0)
+                        {
+                            <span class="text-muted small">(MV @card.Cmc.ToString("G29"))</span>
+                        }
+                    </div>
+                }
+
+                @* Type line *@
+                <p class="mt-1 mb-0 fw-semibold text-secondary fs-6">@DisplayTypeLine</p>
+                <hr class="my-2" />
+
+                @* Oracle text — preserve newlines *@
+                @if (!string.IsNullOrEmpty(DisplayOracleText))
+                {
+                    <div class="mb-2" style="white-space: pre-line; font-size: 0.95rem; line-height: 1.6;">@DisplayOracleText</div>
+                }
+
+                @* Power / Toughness *@
+                @if (!string.IsNullOrEmpty(DisplayPower) && !string.IsNullOrEmpty(DisplayToughness))
+                {
+                    <p class="mb-2 fw-semibold text-secondary">@DisplayPower / @DisplayToughness</p>
+                }
+
+                <hr class="my-3" />
+
+                @* Printing details *@
+                <dl class="row mb-0 detail-list">
+                    <dt class="col-sm-4">Set</dt>
+                    <dd class="col-sm-8">
+                        <span class="text-uppercase fw-semibold">@card.SetCode</span>
+                        <span class="text-muted ms-1">#@card.CollectorNumber</span>
+                    </dd>
+
+                    <dt class="col-sm-4">Rarity</dt>
+                    <dd class="col-sm-8">
+                        <span class="fw-semibold text-capitalize @RarityClass(card.Rarity)">@card.Rarity</span>
+                    </dd>
+
+                    @if (card.Finishes is { Length: > 0 })
+                    {
+                        <dt class="col-sm-4">Finishes</dt>
+                        <dd class="col-sm-8">
+                            @foreach (var finish in card.Finishes)
+                            {
+                                <span class="badge me-1 @FinishBadgeClass(finish)">@finish</span>
+                            }
+                        </dd>
+                    }
+
+                    @if (card.ArenaId.HasValue || card.MtgoId.HasValue)
+                    {
+                        <dt class="col-sm-4">Available on</dt>
+                        <dd class="col-sm-8">
+                            @if (card.ArenaId.HasValue)
+                            {
+                                <span class="badge bg-success me-1">MTG Arena</span>
+                            }
+                            @if (card.MtgoId.HasValue)
+                            {
+                                <span class="badge bg-primary me-1">MTGO</span>
+                            }
+                        </dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        @* ── Format Legality ─────────────────────────────────────────── *@
+        @if (card.Legalities is { Count: > 0 })
+        {
+            var relevantFormats = LegalityOrder.Where(f => card.Legalities.ContainsKey(f)).ToList();
+            @if (relevantFormats.Count > 0)
+            {
+                <div class="mt-2 mb-4">
+                    <h5 class="mb-3">Format Legality</h5>
+                    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-2">
+                        @foreach (var format in relevantFormats)
+                        {
+                            var status = card.Legalities[format];
+                            <div class="col">
+                                <div class="d-flex justify-content-between align-items-center border rounded px-3 py-1 small">
+                                    <span class="fw-semibold">@FormatDisplayName(format)</span>
+                                    <span class="badge @LegalityBadgeClass(status)">@LegalityLabel(status)</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+
+        @* ── All Printings ───────────────────────────────────────────── *@
+        @if (card.Printings.Count > 1)
+        {
+            <div class="mb-4">
+                <h5 class="mb-3">
+                    All Printings
+                    <span class="text-muted fw-normal fs-6">(@card.Printings.Count total)</span>
+                </h5>
+                <div class="d-flex flex-row flex-wrap gap-3">
+                    @foreach (var printing in card.Printings)
+                    {
+                        var isCurrent = printing.Id == card.Id;
+                        <a href="/cards/@printing.Id"
+                           class="text-decoration-none printing-tile"
+                           title="@printing.SetCode.ToUpper() #@printing.CollectorNumber @(!string.IsNullOrEmpty(printing.FlavorName) ? $"({printing.FlavorName})" : "")">
+                            @if (!string.IsNullOrEmpty(printing.ImageUri))
+                            {
+                                <img src="@printing.ImageUri"
+                                     alt="@printing.SetCode @printing.CollectorNumber"
+                                     loading="lazy"
+                                     class="printing-img @(isCurrent ? "printing-img-active" : "")"
+                                     style="border-radius: 4.75% / 3.5%;" />
+                            }
+                            else
+                            {
+                                <div class="printing-img bg-secondary d-flex align-items-center justify-content-center text-white small p-1 text-center @(isCurrent ? "printing-img-active" : "")"
+                                     style="border-radius: 4.75% / 3.5%;">
+                                    @printing.SetCode.ToUpper()
+                                </div>
+                            }
+                            <div class="text-center mt-1" style="font-size: 0.68rem; max-width: 100px; overflow: hidden;">
+                                <span class="text-uppercase fw-semibold text-dark d-block">@printing.SetCode</span>
+                                <span class="text-muted">#@printing.CollectorNumber</span>
+                                @if (printing.Finishes?.Contains("foil") == true && printing.Finishes?.Contains("nonfoil") != true)
+                                {
+                                    <span class="badge bg-warning text-dark d-block mt-1" style="font-size: 0.6rem;">Foil only</span>
+                                }
+                            </div>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .detail-list dt, .detail-list dd {
+        font-size: 0.9rem;
+        padding-bottom: 0.25rem;
+    }
+
+    .printing-tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transition: transform 0.15s ease;
+    }
+
+    .printing-tile:hover {
+        transform: translateY(-4px);
+    }
+
+    .printing-img {
+        width: 100px;
+        aspect-ratio: 488 / 680;
+        object-fit: cover;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        transition: box-shadow 0.15s ease;
+    }
+
+    .printing-tile:hover .printing-img {
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+
+    .printing-img-active {
+        outline: 3px solid #0d6efd;
+        outline-offset: 2px;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private CardDetailDto? card;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private int showingFaceIndex;
+
+    // ── Computed display properties ────────────────────────────────────
+    // For DFC cards, show the active face's data; for single-faced use card-level fields.
+
+    private CardFaceDto? ActiveFace =>
+        card is { IsMultiFaced: true, Faces: { } faces } && faces.Count > showingFaceIndex
+            ? faces[showingFaceIndex]
+            : null;
+
+    private string? DisplayImage => ActiveFace?.ImageUri ?? card?.ImageUri;
+    private string? DisplayManaCost => ActiveFace?.ManaCost ?? card?.ManaCost;
+    private string DisplayTypeLine => (ActiveFace != null ? ActiveFace.TypeLine : null) ?? card?.TypeLine ?? string.Empty;
+    private string? DisplayOracleText => ActiveFace?.OracleText ?? card?.OracleText;
+    private string? DisplayPower => ActiveFace?.Power ?? card?.Power;
+    private string? DisplayToughness => ActiveFace?.Toughness ?? card?.Toughness;
+
+    // Formats shown in the legality grid, in display order
+    private static readonly string[] LegalityOrder =
+    [
+        "standard", "pioneer", "modern", "legacy", "vintage",
+        "commander", "pauper", "explorer", "alchemy", "historic",
+        "timeless", "brawl", "standardbrawl", "oathbreaker"
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Reset on every navigation (e.g., clicking a different printing)
+        isLoading = true;
+        errorMessage = null;
+        card = null;
+        showingFaceIndex = 0;
+
+        var (data, error) = await CardService.GetByIdAsync(Id);
+
+        if (error != null)
+        {
+            errorMessage = error;
+        }
+        else
+        {
+            card = data;
+        }
+
+        isLoading = false;
+    }
+
+    private void ToggleFace()
+    {
+        if (card?.Faces == null || card.Faces.Count < 2) return;
+        showingFaceIndex = showingFaceIndex == 0 ? 1 : 0;
+    }
+
+    private static string RarityClass(string rarity) => rarity.ToLowerInvariant() switch
+    {
+        "common"   => "text-secondary",
+        "uncommon" => "text-body-secondary",
+        "rare"     => "text-warning-emphasis",
+        "mythic"   => "text-danger",
+        _          => "text-body",
+    };
+
+    private static string FinishBadgeClass(string finish) => finish.ToLowerInvariant() switch
+    {
+        "foil"   => "bg-warning text-dark",
+        "etched" => "bg-info text-dark",
+        _        => "bg-secondary",
+    };
+
+    private static string LegalityBadgeClass(string status) => status switch
+    {
+        "legal"      => "bg-success",
+        "restricted" => "bg-warning text-dark",
+        "banned"     => "bg-danger",
+        _            => "bg-light text-dark border",
+    };
+
+    private static string LegalityLabel(string status) => status switch
+    {
+        "legal"      => "Legal",
+        "not_legal"  => "Not Legal",
+        "restricted" => "Restricted",
+        "banned"     => "Banned",
+        _            => status,
+    };
+
+    private static string FormatDisplayName(string format) => format switch
+    {
+        "standardbrawl" => "Std Brawl",
+        "oathbreaker"   => "Oathbreaker",
+        _               => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(format),
+    };
+}

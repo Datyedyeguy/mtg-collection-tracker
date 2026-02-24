@@ -101,7 +101,7 @@
             @foreach (var card in results.Cards)
             {
                 <div class="col">
-                    <div class="card h-100 shadow-sm card-hover">
+                    <a href="/cards/@card.Id" class="text-decoration-none card h-100 shadow-sm card-hover d-block">
                         @* Card image — when matched via a flavor-name printing, show that
                            printing's art so the user sees what they searched for *@
                         @{
@@ -123,14 +123,14 @@
 
                         @* Card details *@
                         <div class="card-body p-2">
-                            <p class="card-title mb-1 fw-semibold small lh-sm">@card.Name</p>
+                            <p class="card-title mb-1 fw-semibold small lh-sm text-body">@card.Name</p>
                             @if (!string.IsNullOrEmpty(card.MatchedFlavorName))
                             {
                                 <p class="mb-1 text-muted fst-italic" style="font-size: 0.68rem;">aka: @card.MatchedFlavorName</p>
                             }
                             <p class="card-text text-muted mt-1 mb-0" style="font-size: 0.7rem;">@card.TypeLine</p>
                         </div>
-                    </div>
+                    </a>
                 </div>
             }
         </div>

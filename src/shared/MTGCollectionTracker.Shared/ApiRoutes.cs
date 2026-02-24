@@ -1,3 +1,5 @@
+using System;
+
 namespace MTGCollectionTracker.Shared;
 
 /// <summary>
@@ -76,9 +78,15 @@ public static class ApiRoutes
     /// Search cards: GET /api/cards?q={name}&amp;set={setCode}&amp;type={typeLine}&amp;page={page}&amp;pageSize={pageSize}
     /// At least one of q, set, or type is required.
     /// Returns: CardSearchResponseDto with matching cards and pagination info.
-    /// Does not require authentication — card data is public.
     /// </summary>
     public const string CardsSearch = Cards;
+
+    /// <summary>
+    /// Get full card details: GET /api/cards/{id}
+    /// Returns: CardDetailDto with rules text, legalities, and all alternate printings.
+    /// Returns 404 if the card ID is not found.
+    /// </summary>
+    public static string CardsGetById(Guid id) => $"{Cards}/{id}";
 
     // Future endpoints (uncomment as they're implemented):
     //

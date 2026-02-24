@@ -1,0 +1,146 @@
+@* Renders a Scryfall mana cost string (e.g., "{2}{U}{U}") as colored circular badge symbols.
+   Handles generic numbers, color symbols (W, U, B, R, G), colorless (C), variable (X),
+   hybrid, Phyrexian, and snow mana using CSS-styled spans. *@
+
+@if (!string.IsNullOrWhiteSpace(Cost))
+{
+    <span class="mana-cost-display">
+        @foreach (var symbol in ParseSymbols(Cost))
+        {
+            var css = ManaCss(symbol);
+            <span class="mana-pip @css" title="@ManaTitleText(symbol)">@ManaDisplay(symbol)</span>
+        }
+    </span>
+}
+
+<style>
+    .mana-cost-display {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 2px;
+        align-items: center;
+    }
+
+    .mana-pip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.5em;
+        height: 1.5em;
+        border-radius: 50%;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1;
+        border: 1.5px solid rgba(0,0,0,0.2);
+        user-select: none;
+    }
+
+    /* Color pips */
+    .mana-W { background: #f9f6dd; color: #555; }
+    .mana-U { background: #0e68ab; color: #fff; }
+    .mana-B { background: #2d2d2d; color: #ccc; }
+    .mana-R { background: #d3202a; color: #fff; }
+    .mana-G { background: #00733e; color: #fff; }
+    .mana-C { background: #b5b5b5; color: #333; }
+    .mana-S { background: #b0d8e8; color: #333; }
+
+    /* Generic / number pips */
+    .mana-generic { background: #9e9e9e; color: #fff; }
+
+    /* Variable */
+    .mana-X { background: #9e9e9e; color: #fff; }
+    .mana-Y { background: #9e9e9e; color: #fff; }
+    .mana-Z { background: #9e9e9e; color: #fff; }
+</style>
+
+@code {
+    /// <summary>The mana cost string in Scryfall notation, e.g., "{2}{U}{U}" or "{X}{R}{R}".</summary>
+    [Parameter, EditorRequired]
+    public string Cost { get; set; } = string.Empty;
+
+    /// <summary>Splits a Scryfall mana cost string into individual symbol strings (without braces).</summary>
+    private static IEnumerable<string> ParseSymbols(string cost)
+    {
+        var symbols = new List<string>();
+        var i = 0;
+        while (i < cost.Length)
+        {
+            if (cost[i] == '{')
+            {
+                var close = cost.IndexOf('}', i);
+                if (close > i)
+                {
+                    symbols.Add(cost.Substring(i + 1, close - i - 1));
+                    i = close + 1;
+                    continue;
+                }
+            }
+            i++;
+        }
+
+        return symbols;
+    }
+
+    /// <summary>Returns the CSS class suffix for a given mana symbol string.</summary>
+    private static string ManaCss(string symbol)
+    {
+        return symbol.ToUpper() switch
+        {
+            "W" => "mana-W",
+            "U" => "mana-U",
+            "B" => "mana-B",
+            "R" => "mana-R",
+            "G" => "mana-G",
+            "C" => "mana-C",
+            "S" => "mana-S",
+            "X" => "mana-X",
+            "Y" => "mana-Y",
+            "Z" => "mana-Z",
+            _ when int.TryParse(symbol, out _) => "mana-generic",
+            // Hybrid / Phyrexian: use the first color's styling if available, else generic
+            _ when symbol.Contains('/') => HybridCss(symbol),
+            _ => "mana-generic",
+        };
+    }
+
+    private static string HybridCss(string symbol)
+    {
+        // e.g., "W/U", "2/W", "W/P" (Phyrexian)
+        var parts = symbol.Split('/');
+        return parts[0].ToUpper() switch
+        {
+            "W" => "mana-W",
+            "U" => "mana-U",
+            "B" => "mana-B",
+            "R" => "mana-R",
+            "G" => "mana-G",
+            _ => "mana-generic",
+        };
+    }
+
+    /// <summary>Returns the visible label for a mana symbol pip.</summary>
+    private static string ManaDisplay(string symbol)
+    {
+        return symbol.ToUpper() switch
+        {
+            "W" or "U" or "B" or "R" or "G" or "C" or "S" or "X" or "Y" or "Z" => symbol.ToUpper(),
+            _ when symbol.Contains('/') => symbol.Replace("/P", "φ"),
+            _ => symbol,
+        };
+    }
+
+    /// <summary>Returns a human-readable tooltip for a mana symbol.</summary>
+    private static string ManaTitleText(string symbol) => symbol.ToUpper() switch
+    {
+        "W" => "White",
+        "U" => "Blue",
+        "B" => "Black",
+        "R" => "Red",
+        "G" => "Green",
+        "C" => "Colorless",
+        "S" => "Snow",
+        "X" => "Variable",
+        _ when int.TryParse(symbol, out _) => $"{symbol} generic mana",
+        _ => symbol,
+    };
+}

@@ -230,6 +230,128 @@ public class CardsController : ControllerBase
     }
 
     /// <summary>
+    /// Returns full details for a single card printing, including rules text, legalities,
+    /// power/toughness, and a list of all other printings with the same Oracle ID.
+    /// </summary>
+    /// <param name="id">The internal database ID of the card printing to retrieve.</param>
+    /// <returns>CardDetailDto with all card data and alternate printings.</returns>
+    /// <response code="200">The card detail was found and returned.</response>
+    /// <response code="404">No card with the given ID exists in the database.</response>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(CardDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CardDetailDto>> GetCard(Guid id)
+    {
+        // Fetch the requested printing
+        var card = await _dbContext.Cards
+            .Where(c => c.Id == id)
+            .Select(c => new
+            {
+                c.Id,
+                c.ScryfallId,
+                c.OracleId,
+                c.Name,
+                c.FlavorName,
+                c.SetCode,
+                c.CollectorNumber,
+                c.Rarity,
+                c.ManaCost,
+                c.Cmc,
+                c.TypeLine,
+                c.OracleText,
+                c.Power,
+                c.Toughness,
+                c.Colors,
+                c.Finishes,
+                c.ImageUris,
+                c.Faces,
+                c.Legalities,
+                c.ArenaId,
+                c.MtgoId,
+            })
+            .FirstOrDefaultAsync();
+
+        if (card == null)
+        {
+            return NotFound($"Card with ID {id} was not found.");
+        }
+
+        // Fetch all printings of the same card (same Oracle ID), ordered for display
+        var allPrintings = await _dbContext.Cards
+            .Where(c => c.OracleId == card.OracleId)
+            .OrderBy(c => c.SetCode)
+            .ThenBy(c => c.CollectorNumber)
+            .Select(c => new
+            {
+                c.Id,
+                c.SetCode,
+                c.CollectorNumber,
+                c.Rarity,
+                c.Finishes,
+                c.ImageUris,
+                c.Faces,
+                c.FlavorName,
+            })
+            .ToListAsync();
+
+        var printingDtos = allPrintings.Select(p => new CardPrintingDto
+        {
+            Id = p.Id,
+            SetCode = p.SetCode,
+            CollectorNumber = p.CollectorNumber,
+            Rarity = p.Rarity,
+            Finishes = DeserializeJsonArray(p.Finishes),
+            ImageUri = ExtractImageUri(p.ImageUris, p.Faces),
+            FlavorName = p.FlavorName,
+        }).ToList();
+
+        // Deserialize the legalities JSON object into a dictionary
+        Dictionary<string, string>? legalities = null;
+        if (!string.IsNullOrEmpty(card.Legalities))
+        {
+            try
+            {
+                legalities = JsonSerializer.Deserialize<Dictionary<string, string>>(card.Legalities);
+            }
+            catch (JsonException)
+            {
+                // Malformed legality JSON — treat as unavailable
+            }
+        }
+
+        var dto = new CardDetailDto
+        {
+            Id = card.Id,
+            ScryfallId = card.ScryfallId,
+            OracleId = card.OracleId,
+            Name = card.Name,
+            FlavorName = card.FlavorName,
+            SetCode = card.SetCode,
+            CollectorNumber = card.CollectorNumber,
+            Rarity = card.Rarity,
+            ManaCost = card.ManaCost,
+            Cmc = card.Cmc,
+            TypeLine = card.TypeLine,
+            OracleText = card.OracleText,
+            Power = card.Power,
+            Toughness = card.Toughness,
+            Colors = DeserializeJsonArray(card.Colors),
+            Finishes = DeserializeJsonArray(card.Finishes),
+            ImageUri = ExtractImageUri(card.ImageUris, card.Faces),
+            IsMultiFaced = card.Faces != null,
+            Faces = card.Faces != null
+                ? JsonSerializer.Deserialize<List<CardFaceDto>>(card.Faces)
+                : null,
+            ArenaId = card.ArenaId,
+            MtgoId = card.MtgoId,
+            Legalities = legalities,
+            Printings = printingDtos,
+        };
+
+        return Ok(dto);
+    }
+
+    /// <summary>
     /// Extracts the "normal" image URL for a card.
     /// For single-faced cards: reads the "normal" key from the ImageUris JSON object.
     /// For multi-faced cards: falls back to the first face's ImageUri.

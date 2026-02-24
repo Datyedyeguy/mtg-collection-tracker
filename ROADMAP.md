@@ -229,9 +229,10 @@
   - [ ] Card search: handle art cards correctly — currently display as "Card // Card" because they
         use the reversible_card layout with faces; needs a dedicated display path (single image,
         no double-faced treatment)
-  - [ ] Card details page (/cards/{id}) — clicking a card opens a detail view showing full card
-        info (rules text, mana cost, type, legalities), all alternate printings with set/image,
-        and an "Add to collection" button; foundation for future price history, deck usage, etc.
+  - [x] Card details page (/cards/{id}) ✅ (Feb 24, 2026) — clicking a card opens a detail view
+        showing full card info (rules text, mana cost, type, legalities, all alternate printings),
+        DFC flip button for multi-faced cards, and a printings grid with thumbnails linking to
+        each printing's detail page; foundation for future "Add to collection" button
   - [ ] Add card to collection (POST /api/collections)
   - [ ] Edit card quantity (PUT /api/collections/{id})
   - [ ] Remove card from collection (DELETE /api/collections/{id})
