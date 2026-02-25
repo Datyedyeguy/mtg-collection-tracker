@@ -61,7 +61,7 @@
             <div class="col-md-4 d-flex flex-column align-items-center">
                 @if (!string.IsNullOrEmpty(DisplayImage))
                 {
-                    <img src="@DisplayImage" alt="@(ActiveFace?.Name ?? card.Name)"               class="img-fluid shadow"
+                    <img src="@DisplayImage" alt="@(ActiveFace?.Name ?? card.Name)" class="img-fluid shadow"
                          style="border-radius: 4.75% / 3.5%; max-width: 340px; width: 100%;" />
                 }
                 else
@@ -203,11 +203,11 @@
                     @foreach (var printing in card.Printings)
                     {
                         var isCurrent = printing.Id == card.Id;
-                        <a href="/cards/@printing.Id"              class="text-decoration-none printing-tile"
+                        <a href="/cards/@printing.Id" class="text-decoration-none printing-tile"
                                title="@printing.SetCode.ToUpper() #@printing.CollectorNumber @(!string.IsNullOrEmpty(printing.FlavorName) ? $"({printing.FlavorName})" : "")">
                             @if (!string.IsNullOrEmpty(printing.ImageUri))
                             {
-                                <img src="@printing.ImageUri"                                     alt="@printing.SetCode @printing.CollectorNumber"                                     loading="lazy"
+                                <img src="@printing.ImageUri" alt="@printing.SetCode @printing.CollectorNumber" loading="lazy"
                                      class="printing-img @(isCurrent ? "printing-img-active" : "")"
                                      style="border-radius: 4.75% / 3.5%;" />
                             }
