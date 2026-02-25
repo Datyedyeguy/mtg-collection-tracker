@@ -429,6 +429,11 @@ class Program
                         ? mtgoId.GetInt32()
                         : null,
 
+                    // Games: Platforms this printing is available on ("paper", "mtgo", "arena")
+                    Games = element.TryGetProperty("games", out var games)
+                        ? JsonSerializer.Serialize(games)
+                        : null,
+
                     // Finishes: Array of available finishes (nonfoil, foil, etched)
                     Finishes = element.TryGetProperty("finishes", out var finishes)
                         ? JsonSerializer.Serialize(finishes)

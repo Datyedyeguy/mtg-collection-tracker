@@ -14,9 +14,20 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/cards">Card Search</a></li>
             <li class="breadcrumb-item active" aria-current="page">
-                @if (isLoading) { <span>Loading…</span> }
-                else if (card != null) { @card.Name }
-                else { <span>Not found</span> }
+                @if (isLoading)
+                {
+                    <span>Loading…</span>
+                }
+                else if (card != null)
+                {
+
+                    @card.Name
+                }
+                else
+                {
+
+                    <span>Not found</span>
+                }
             </li>
         </ol>
     </nav>
@@ -50,8 +61,7 @@
             <div class="col-md-4 d-flex flex-column align-items-center">
                 @if (!string.IsNullOrEmpty(DisplayImage))
                 {
-                    <img src="@DisplayImage" alt="@(ActiveFace?.Name ?? card.Name)"
-                         class="img-fluid shadow"
+                    <img src="@DisplayImage" alt="@(ActiveFace?.Name ?? card.Name)"               class="img-fluid shadow"
                          style="border-radius: 4.75% / 3.5%; max-width: 340px; width: 100%;" />
                 }
                 else
@@ -101,7 +111,8 @@
                 @* Oracle text — preserve newlines *@
                 @if (!string.IsNullOrEmpty(DisplayOracleText))
                 {
-                    <div class="mb-2" style="white-space: pre-line; font-size: 0.95rem; line-height: 1.6;">@DisplayOracleText</div>
+                    <div class="mb-2" style="white-space: pre-line; font-size: 0.95rem; line-height: 1.6;">@DisplayOracleText
+                    </div>
                 }
 
                 @* Power / Toughness *@
@@ -136,20 +147,22 @@
                         </dd>
                     }
 
-                    @if (card.ArenaId.HasValue || card.MtgoId.HasValue)
-                    {
-                        <dt class="col-sm-4">Available on</dt>
-                        <dd class="col-sm-8">
-                            @if (card.ArenaId.HasValue)
-                            {
-                                <span class="badge bg-success me-1">MTG Arena</span>
-                            }
-                            @if (card.MtgoId.HasValue)
-                            {
-                                <span class="badge bg-primary me-1">MTGO</span>
-                            }
-                        </dd>
-                    }
+                    <dt class="col-sm-4">Available on</dt>
+                    <dd class="col-sm-8">
+                        @* Games is null for pre-existing data — default to showing Paper *@
+                        @if (card.Games == null || card.Games.Contains("paper"))
+                        {
+                            <span class="badge bg-secondary me-1">Paper</span>
+                        }
+                        @if (card.Games?.Contains("arena") == true)
+                        {
+                            <span class="badge bg-success me-1">MTG Arena</span>
+                        }
+                        @if (card.Games?.Contains("mtgo") == true)
+                        {
+                            <span class="badge bg-primary me-1">MTGO</span>
+                        }
+                    </dd>
                 </dl>
             </div>
         </div>
@@ -190,14 +203,11 @@
                     @foreach (var printing in card.Printings)
                     {
                         var isCurrent = printing.Id == card.Id;
-                        <a href="/cards/@printing.Id"
-                           class="text-decoration-none printing-tile"
-                           title="@printing.SetCode.ToUpper() #@printing.CollectorNumber @(!string.IsNullOrEmpty(printing.FlavorName) ? $"({printing.FlavorName})" : "")">
+                        <a href="/cards/@printing.Id"              class="text-decoration-none printing-tile"
+                               title="@printing.SetCode.ToUpper() #@printing.CollectorNumber @(!string.IsNullOrEmpty(printing.FlavorName) ? $"({printing.FlavorName})" : "")">
                             @if (!string.IsNullOrEmpty(printing.ImageUri))
                             {
-                                <img src="@printing.ImageUri"
-                                     alt="@printing.SetCode @printing.CollectorNumber"
-                                     loading="lazy"
+                                <img src="@printing.ImageUri"                                     alt="@printing.SetCode @printing.CollectorNumber"                                     loading="lazy"
                                      class="printing-img @(isCurrent ? "printing-img-active" : "")"
                                      style="border-radius: 4.75% / 3.5%;" />
                             }
@@ -225,7 +235,8 @@
 </div>
 
 <style>
-    .detail-list dt, .detail-list dd {
+    .detail-list dt,
+    .detail-list dd {
         font-size: 0.9rem;
         padding-bottom: 0.25rem;
     }
@@ -320,41 +331,41 @@
 
     private static string RarityClass(string rarity) => rarity.ToLowerInvariant() switch
     {
-        "common"   => "text-secondary",
+        "common" => "text-secondary",
         "uncommon" => "text-body-secondary",
-        "rare"     => "text-warning-emphasis",
-        "mythic"   => "text-danger",
-        _          => "text-body",
+        "rare" => "text-warning-emphasis",
+        "mythic" => "text-danger",
+        _ => "text-body",
     };
 
     private static string FinishBadgeClass(string finish) => finish.ToLowerInvariant() switch
     {
-        "foil"   => "bg-warning text-dark",
+        "foil" => "bg-warning text-dark",
         "etched" => "bg-info text-dark",
-        _        => "bg-secondary",
+        _ => "bg-secondary",
     };
 
     private static string LegalityBadgeClass(string status) => status switch
     {
-        "legal"      => "bg-success",
+        "legal" => "bg-success",
         "restricted" => "bg-warning text-dark",
-        "banned"     => "bg-danger",
-        _            => "bg-light text-dark border",
+        "banned" => "bg-danger",
+        _ => "bg-light text-dark border",
     };
 
     private static string LegalityLabel(string status) => status switch
     {
-        "legal"      => "Legal",
-        "not_legal"  => "Not Legal",
+        "legal" => "Legal",
+        "not_legal" => "Not Legal",
         "restricted" => "Restricted",
-        "banned"     => "Banned",
-        _            => status,
+        "banned" => "Banned",
+        _ => status,
     };
 
     private static string FormatDisplayName(string format) => format switch
     {
         "standardbrawl" => "Std Brawl",
-        "oathbreaker"   => "Oathbreaker",
-        _               => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(format),
+        "oathbreaker" => "Oathbreaker",
+        _ => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(format),
     };
 }

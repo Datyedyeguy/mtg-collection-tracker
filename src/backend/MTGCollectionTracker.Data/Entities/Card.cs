@@ -74,6 +74,16 @@ public class Card
     public int? MtgoId { get; set; }
 
     /// <summary>
+    /// JSON array of game platforms this printing is available on.
+    /// Example: ["paper", "mtgo", "arena"] or ["arena"] for digital-only cards.
+    /// Possible values: "paper", "mtgo", "arena".
+    /// Null for cards synced before this field was added (pre-migration data);
+    /// treat null as ["paper"] for display purposes.
+    /// Stored as JSONB in PostgreSQL.
+    /// </summary>
+    public string? Games { get; set; }
+
+    /// <summary>
     /// The mana cost in Scryfall notation (e.g., "{2}{U}{U}").
     /// Null for lands and cards without mana costs.
     /// </summary>

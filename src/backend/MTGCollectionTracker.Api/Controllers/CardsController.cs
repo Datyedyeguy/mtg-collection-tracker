@@ -268,6 +268,7 @@ public class CardsController : ControllerBase
                 c.Legalities,
                 c.ArenaId,
                 c.MtgoId,
+                c.Games,
             })
             .FirstOrDefaultAsync();
 
@@ -344,6 +345,7 @@ public class CardsController : ControllerBase
                 : null,
             ArenaId = card.ArenaId,
             MtgoId = card.MtgoId,
+            Games = DeserializeJsonArray(card.Games),
             Legalities = legalities,
             Printings = printingDtos,
         };

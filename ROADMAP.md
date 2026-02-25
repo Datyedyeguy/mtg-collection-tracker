@@ -286,7 +286,20 @@
 - [ ] Structured logging (Serilog) - can add later
   - [ ] Add logging to frontend (Blazor console logging or remote logging)
   - [ ] Improve exception handling in CustomAuthStateProvider (specific exception types, TryParse for token claims)
-- [ ] Advanced error handling - start simple
+- [ ] **Collector number natural sort** — in `CardsController.GetCard`, printings are ordered by
+      `SetCode` then `CollectorNumber`, but `CollectorNumber` is stored as a string, so "10" sorts
+      before "2" (lexicographic order). Within large sets this produces slightly wrong ordering.
+      Fix requires either storing `CollectorNumber` as an integer + suffix (migration needed) or
+      using a PostgreSQL natural sort expression (e.g., `ORDER BY set_code,
+  CAST(regexp_replace(collector_number, '\D', '', 'g') AS int)`). Affects the "All Printings"
+      thumbnails on the card detail page.
+
+- [ ] **Global exception handling middleware** — currently no `UseExceptionHandler()` or problem
+      details middleware in `Program.cs`. Unhandled exceptions in controllers produce a bare 500
+      with no body in production. JSON deserialization errors in `CardsController` are
+      individually caught-and-swallowed today, but any other unexpected exception would surface
+      as an unformatted 500. Add before Azure deployment (Phase 4).
+      See: `app.UseExceptionHandler()` / `AddProblemDetails()` in .NET 8+.
 
 ---
 

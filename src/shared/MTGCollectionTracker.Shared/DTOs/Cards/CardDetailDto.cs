@@ -130,6 +130,13 @@ public class CardDetailDto
     public int? MtgoId { get; set; }
 
     /// <summary>
+    /// Game platforms this printing is available on.
+    /// Possible values: "paper", "mtgo", "arena".
+    /// Null for cards synced before this field was added — treat null as including "paper".
+    /// </summary>
+    public string[]? Games { get; set; }
+
+    /// <summary>
     /// Format legality map.
     /// Keys are format names (e.g., "standard", "modern", "commander").
     /// Values are "legal", "not_legal", "restricted", or "banned".
