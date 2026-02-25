@@ -286,12 +286,29 @@
 - [ ] Structured logging (Serilog) - can add later
   - [ ] Add logging to frontend (Blazor console logging or remote logging)
   - [ ] Improve exception handling in CustomAuthStateProvider (specific exception types, TryParse for token claims)
+- [ ] **Investigate Scryfall `games` array accuracy** — Scryfall's `games` field may not always
+      be reliable. Example: `fca/40` (Lightning Bolt from Foundations Commander Anthology) is
+      listed as `["paper", "arena"]` on Scryfall, but the user believes it should also include
+      `"mtgo"`. This could be a Scryfall data issue, a sync lag, or a set-level MTGO exclusion.
+      Investigate: check other FCA cards on MTGO/Scryfall, compare with the `mtgo_id` field
+      (which may be a more reliable indicator of MTGO availability than `games`).
+      Consider showing `mtgo_id` / `arena_id` presence as a fallback signal alongside `games`.
+      Reference: https://scryfall.com/card/fca/40/lightning-bolt
+
+- [ ] **Aggregate platform availability across all printings** — the "Available on" section on
+      the card detail page reflects only the _specific printing_ being viewed. A 2001 Lightning
+      Bolt shows "Paper, MTGO" even though a newer printing exists on Arena. Consider adding an
+      "Any printing" row showing the union of all printings' Games arrays, so users can tell at
+      a glance whether a card exists in Arena/MTGO at all, regardless of which printing they're
+      viewing. Requires adding `Games` to `CardPrintingDto` and computing a `string[] AllPlatforms`
+      on `CardDetailDto` in the backend.
+
 - [ ] **Collector number natural sort** — in `CardsController.GetCard`, printings are ordered by
       `SetCode` then `CollectorNumber`, but `CollectorNumber` is stored as a string, so "10" sorts
       before "2" (lexicographic order). Within large sets this produces slightly wrong ordering.
       Fix requires either storing `CollectorNumber` as an integer + suffix (migration needed) or
       using a PostgreSQL natural sort expression (e.g., `ORDER BY set_code,
-  CAST(regexp_replace(collector_number, '\D', '', 'g') AS int)`). Affects the "All Printings"
+CAST(regexp_replace(collector_number, '\D', '', 'g') AS int)`). Affects the "All Printings"
       thumbnails on the card detail page.
 
 - [ ] **Global exception handling middleware** — currently no `UseExceptionHandler()` or problem
