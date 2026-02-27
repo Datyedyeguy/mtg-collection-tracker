@@ -1,6 +1,6 @@
 # API Documentation
 
-> **Status**: ✅ Core endpoints implemented. Authentication and Collections viewing functional.
+> **Status**: ✅ Core endpoints implemented. Authentication, Collections (view + add cards + ownership query), and Cards (search + detail) are functional.
 
 Base URL:
 
@@ -218,16 +218,17 @@ GET /api/collections?platform=Paper&page=2&pageSize=25
       "cardName": "Lightning Bolt",
       "setCode": "m21",
       "collectorNumber": "123",
-      "rarity": "common",
       "platform": "Paper",
       "quantity": 4,
-      "acquiredDate": "2024-03-15T00:00:00Z",
-      "imageUrl": "https://cards.scryfall.io/normal/front/..."
+      "foilQuantity": 0,
+      "imageUri": "https://cards.scryfall.io/normal/front/...",
+      "acquiredDate": null,
+      "createdAt": "2026-02-26T12:00:00Z"
     }
   ],
-  "totalEntries": 1523,
+  "totalUniqueCards": 1523,
   "totalCards": 8476,
-  "platform": "Paper",
+  "cardsByPlatform": { "Paper": 6000, "Arena": 2000, "Mtgo": 476 },
   "currentPage": 1,
   "pageSize": 50,
   "totalPages": 31,
@@ -251,6 +252,72 @@ GET /api/collections?platform=Paper&page=2&pageSize=25
   "message": "Unauthorized"
 }
 ```
+
+---
+
+#### Add Card to Collection
+
+**Endpoint:** `POST /api/collections`
+
+**Authorization:** Required (Bearer token)
+
+**Upsert semantics:** If the user already owns this card on the same platform, quantities are accumulated onto the existing entry (200 OK). A new entry returns 201 Created.
+
+**Request Body:**
+
+```json
+{
+  "cardId": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+  "platform": "Paper",
+  "quantity": 4,
+  "foilQuantity": 1
+}
+```
+
+**Success Responses:**
+
+- **201 Created** — new collection entry created
+- **200 OK** — quantities added to an existing entry
+
+Both return the updated `CollectionEntryDto` (same shape as entries in `GET /api/collections`).
+
+**Error Responses:**
+
+- **400 Bad Request** — both quantities are zero, or a quantity is negative
+- **404 Not Found** — `cardId` does not exist in the cards table
+- **401 Unauthorized** — missing/invalid token
+
+---
+
+#### Get Card Ownership
+
+**Endpoint:** `GET /api/collections/card/{cardId}`
+
+**Authorization:** Required (Bearer token)
+
+Returns all collection entries for a specific card across all platforms. Used by the card detail page to show how many copies the user owns.
+
+**Example Request:**
+
+```http
+GET /api/collections/card/a1b2c3d4-5678-90ab-cdef-1234567890ab
+```
+
+**Success Response (200 OK):**
+
+```json
+[
+  { "platform": "Paper", "quantity": 4, "foilQuantity": 1, ... },
+  { "platform": "Mtgo",  "quantity": 2, "foilQuantity": 0, ... }
+]
+```
+
+Returns an empty array `[]` if the card is not in the user's collection.
+
+**Error Responses:**
+
+- **404 Not Found** — `cardId` does not exist in the cards table
+- **401 Unauthorized** — missing/invalid token
 
 ---
 
@@ -371,13 +438,15 @@ GET /api/cards?q=lightning+bolt&allPrintings=true
 
 ---
 
-#### Get Card Details (Future - Phase 4)
+#### Get Card Details
 
-```http
-GET /api/cards/{id}
-```
+**Endpoint:** `GET /api/cards/{id}`
 
-#### Get Card by Scryfall ID (Future - Phase 4)
+**Authorization:** Required (Bearer token)
+
+Returns full card detail for a given internal card ID, including oracle text, mana cost, type line, format legalities, all alternate printings, and image URI. Multi-faced cards include a `faces` array. Implemented Feb 24, 2026.
+
+#### Get Card by Scryfall ID (Future)
 
 ```http
 GET /api/cards/scryfall/{scryfallId}

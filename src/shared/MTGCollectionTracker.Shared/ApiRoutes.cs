@@ -70,6 +70,19 @@ public static class ApiRoutes
     public const string CollectionsGet = Collections;
 
     /// <summary>
+    /// Add a card to the user's collection: POST /api/collections
+    /// Accepts: AddToCollectionRequest
+    /// Returns: CollectionEntryDto (201 Created for new entry, 200 OK for upsert)
+    /// </summary>
+    public const string CollectionsAdd = Collections;
+
+    /// <summary>
+    /// Get the user's ownership of a specific card across all platforms: GET /api/collections/card/{cardId}
+    /// Returns: List&lt;CollectionEntryDto&gt; (empty list if not owned on any platform)
+    /// </summary>
+    public static string CollectionsGetByCard(Guid cardId) => $"{Collections}/card/{cardId}";
+
+    /// <summary>
     /// Base path for card endpoints.
     /// </summary>
     public const string Cards = $"{ApiBase}/cards";

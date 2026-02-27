@@ -80,15 +80,22 @@
                         <th>Set</th>
                         <th>Collector #</th>
                         <th>Platform</th>
-                        <th>Quantity</th>
-                        <th>Acquired Date</th>
+                        <th>Qty</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var entry in collection.Entries)
                     {
                         <tr>
-                            <td>@entry.CardName</td>
+                            <td class="card-name-cell">
+                                <a href="/cards/@entry.CardId" class="card-link">@entry.CardName</a>
+                                @if (!string.IsNullOrEmpty(entry.ImageUri))
+                                {
+                                    <div class="card-hover-image">
+                                        <img src="@entry.ImageUri" alt="@entry.CardName" />
+                                    </div>
+                                }
+                            </td>
                             <td><span class="badge bg-secondary">@entry.SetCode.ToUpper()</span></td>
                             <td>@entry.CollectorNumber</td>
                             <td>
@@ -105,8 +112,13 @@
                                         break;
                                 }
                             </td>
-                            <td>@entry.Quantity</td>
-                            <td>@(entry.AcquiredDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                            <td>
+                                @entry.Quantity
+                                @if (entry.FoilQuantity > 0)
+                                {
+                                    <span class="text-muted ms-1 small">+ @entry.FoilQuantity✦</span>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>

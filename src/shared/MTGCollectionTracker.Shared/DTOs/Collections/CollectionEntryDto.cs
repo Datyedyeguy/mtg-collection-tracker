@@ -39,9 +39,19 @@ public class CollectionEntryDto
     public Platform Platform { get; set; }
 
     /// <summary>
-    /// Number of copies owned (1-999).
+    /// Number of nonfoil copies owned.
     /// </summary>
     public int Quantity { get; set; }
+
+    /// <summary>
+    /// Number of foil copies owned (Paper and MTGO only; cosmetic on Arena).
+    /// </summary>
+    public int FoilQuantity { get; set; }
+
+    /// <summary>
+    /// Card image URL (normal size from Scryfall). Null if not yet synced.
+    /// </summary>
+    public string? ImageUri { get; set; }
 
     /// <summary>
     /// Optional: When this card was acquired.

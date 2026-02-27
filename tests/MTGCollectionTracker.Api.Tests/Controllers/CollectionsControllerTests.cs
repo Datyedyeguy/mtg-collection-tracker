@@ -322,6 +322,436 @@ public class CollectionsControllerTests
         response.Entries[2].CardName.ShouldBe("Zebra Strike");
     }
 
+    [TestMethod]
+    public async Task GetCollection_WithImageUris_ReturnsNormalImageUri()
+    {
+        // Arrange — card with normal image URL in its ImageUris JSON
+        const string imageUrl = "https://cards.scryfall.io/normal/front/test.jpg";
+        var card = CreateCard("Lightning Bolt", "M21", "123",
+            imageUrisJson: $"{{\"small\":\"https://small.jpg\",\"normal\":\"{imageUrl}\"}}");
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.CollectionEntries.AddAsync(new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetCollection();
+
+        // Assert
+        var okResult = result.Result.ShouldBeOfType<OkObjectResult>();
+        var response = okResult.Value.ShouldBeOfType<CollectionResponseDto>();
+
+        var entry = response.Entries.ShouldHaveSingleItem();
+        entry.ImageUri.ShouldBe(imageUrl);
+    }
+
+    [TestMethod]
+    public async Task GetCollection_WithNoImageUris_ReturnsNullImageUri()
+    {
+        // Arrange — card without any image data
+        var card = CreateCard("Lightning Bolt", "M21", "123", imageUrisJson: null);
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.CollectionEntries.AddAsync(new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetCollection();
+
+        // Assert
+        var okResult = result.Result.ShouldBeOfType<OkObjectResult>();
+        var response = okResult.Value.ShouldBeOfType<CollectionResponseDto>();
+
+        var entry = response.Entries.ShouldHaveSingleItem();
+        entry.ImageUri.ShouldBeNull();
+    }
+
+    // ── AddToCollection tests ─────────────────────────────────────────────────
+
+    [TestMethod]
+    public async Task AddToCollection_NewCard_Returns201WithCorrectEntry()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new AddToCollectionRequest
+        {
+            CardId = card.Id,
+            Platform = MTGCollectionTracker.Shared.Enums.Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 1
+        };
+
+        // Act
+        var result = await _controller.AddToCollection(request);
+
+        // Assert
+        var createdResult = result.Result.ShouldBeOfType<CreatedAtActionResult>();
+        var entry = createdResult.Value.ShouldBeOfType<CollectionEntryDto>();
+
+        entry.CardId.ShouldBe(card.Id);
+        entry.CardName.ShouldBe("Lightning Bolt");
+        entry.SetCode.ShouldBe("M21");
+        entry.Platform.ShouldBe(MTGCollectionTracker.Shared.Enums.Platform.Paper);
+        entry.Quantity.ShouldBe(4);
+        entry.FoilQuantity.ShouldBe(1);
+
+        // Verify persisted to database
+        var dbEntry = await _dbContext.CollectionEntries.SingleAsync();
+        dbEntry.Quantity.ShouldBe(4);
+        dbEntry.FoilQuantity.ShouldBe(1);
+    }
+
+    [TestMethod]
+    public async Task AddToCollection_ExistingCardSamePlatform_AccumulatesQuantityAndReturns200()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var existing = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 2,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(existing);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new AddToCollectionRequest
+        {
+            CardId = card.Id,
+            Platform = MTGCollectionTracker.Shared.Enums.Platform.Paper,
+            Quantity = 3,
+            FoilQuantity = 1
+        };
+
+        // Act
+        var result = await _controller.AddToCollection(request);
+
+        // Assert
+        var okResult = result.Result.ShouldBeOfType<OkObjectResult>();
+        var entry = okResult.Value.ShouldBeOfType<CollectionEntryDto>();
+
+        entry.Quantity.ShouldBe(5);   // 2 + 3
+        entry.FoilQuantity.ShouldBe(1); // 0 + 1
+
+        // Verify only one entry in database (upsert, not insert)
+        var dbEntries = await _dbContext.CollectionEntries.ToListAsync();
+        dbEntries.Count.ShouldBe(1);
+        dbEntries[0].Quantity.ShouldBe(5);
+        dbEntries[0].FoilQuantity.ShouldBe(1);
+    }
+
+    [TestMethod]
+    public async Task AddToCollection_SameCardDifferentPlatform_CreatesSeparateEntry()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var existing = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(existing);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new AddToCollectionRequest
+        {
+            CardId = card.Id,
+            Platform = MTGCollectionTracker.Shared.Enums.Platform.Arena,
+            Quantity = 4,
+            FoilQuantity = 0
+        };
+
+        // Act
+        var result = await _controller.AddToCollection(request);
+
+        // Assert
+        result.Result.ShouldBeOfType<CreatedAtActionResult>();
+
+        // Two separate entries — one Paper, one Arena
+        var dbEntries = await _dbContext.CollectionEntries.ToListAsync();
+        dbEntries.Count.ShouldBe(2);
+        dbEntries.ShouldContain(e => e.Platform == Platform.Paper && e.Quantity == 4);
+        dbEntries.ShouldContain(e => e.Platform == Platform.Arena && e.Quantity == 4);
+    }
+
+    [TestMethod]
+    public async Task AddToCollection_NonexistentCardId_Returns404()
+    {
+        // Arrange
+        var request = new AddToCollectionRequest
+        {
+            CardId = Guid.NewGuid(), // Does not exist in DB
+            Platform = MTGCollectionTracker.Shared.Enums.Platform.Paper,
+            Quantity = 1,
+            FoilQuantity = 0
+        };
+
+        // Act
+        var result = await _controller.AddToCollection(request);
+
+        // Assert
+        result.Result.ShouldBeOfType<NotFoundObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task AddToCollection_BothQuantitiesZero_Returns400()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new AddToCollectionRequest
+        {
+            CardId = card.Id,
+            Platform = MTGCollectionTracker.Shared.Enums.Platform.Paper,
+            Quantity = 0,
+            FoilQuantity = 0
+        };
+
+        // Act
+        var result = await _controller.AddToCollection(request);
+
+        // Assert
+        result.Result.ShouldBeOfType<BadRequestObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task AddToCollection_NegativeQuantity_Returns400()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new AddToCollectionRequest
+        {
+            CardId = card.Id,
+            Platform = MTGCollectionTracker.Shared.Enums.Platform.Paper,
+            Quantity = -1,
+            FoilQuantity = 0
+        };
+
+        // Act
+        var result = await _controller.AddToCollection(request);
+
+        // Assert
+        result.Result.ShouldBeOfType<BadRequestObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task AddToCollection_NoUserClaim_ReturnsUnauthorized()
+    {
+        // Arrange - controller without user identity
+        var controllerWithoutUser = new CollectionsController(_dbContext);
+        controllerWithoutUser.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new AddToCollectionRequest
+        {
+            CardId = card.Id,
+            Platform = MTGCollectionTracker.Shared.Enums.Platform.Paper,
+            Quantity = 1,
+            FoilQuantity = 0
+        };
+
+        // Act
+        var result = await controllerWithoutUser.AddToCollection(request);
+
+        // Assert
+        result.Result.ShouldBeOfType<UnauthorizedResult>();
+    }
+
+    // ── GetCardOwnership tests ──────────────────────────────────────────────
+
+    [TestMethod]
+    public async Task GetCardOwnership_NotOwnedAnywhere_ReturnsEmptyList()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetCardOwnership(card.Id);
+
+        // Assert
+        var okResult = result.Result.ShouldBeOfType<OkObjectResult>();
+        var entries = okResult.Value.ShouldBeOfType<List<CollectionEntryDto>>();
+        entries.ShouldBeEmpty();
+    }
+
+    [TestMethod]
+    public async Task GetCardOwnership_OwnedOnOnePlatform_ReturnsSingleEntry()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.CollectionEntries.AddAsync(new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetCardOwnership(card.Id);
+
+        // Assert
+        var okResult = result.Result.ShouldBeOfType<OkObjectResult>();
+        var entries = okResult.Value.ShouldBeOfType<List<CollectionEntryDto>>();
+        entries.Count.ShouldBe(1);
+        entries[0].Quantity.ShouldBe(4);
+        entries[0].FoilQuantity.ShouldBe(1);
+        entries[0].Platform.ShouldBe(MTGCollectionTracker.Shared.Enums.Platform.Paper);
+    }
+
+    [TestMethod]
+    public async Task GetCardOwnership_OwnedOnMultiplePlatforms_ReturnsAllEntries()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.CollectionEntries.AddRangeAsync(
+            new CollectionEntry
+            {
+                Id = Guid.NewGuid(),
+                UserId = TestUserId,
+                CardId = card.Id,
+                Platform = Platform.Paper,
+                Quantity = 4,
+                FoilQuantity = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new CollectionEntry
+            {
+                Id = Guid.NewGuid(),
+                UserId = TestUserId,
+                CardId = card.Id,
+                Platform = Platform.Arena,
+                Quantity = 4,
+                FoilQuantity = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetCardOwnership(card.Id);
+
+        // Assert
+        var okResult = result.Result.ShouldBeOfType<OkObjectResult>();
+        var entries = okResult.Value.ShouldBeOfType<List<CollectionEntryDto>>();
+        entries.Count.ShouldBe(2);
+        entries.ShouldContain(e => e.Platform == MTGCollectionTracker.Shared.Enums.Platform.Paper);
+        entries.ShouldContain(e => e.Platform == MTGCollectionTracker.Shared.Enums.Platform.Arena);
+    }
+
+    [TestMethod]
+    public async Task GetCardOwnership_OtherUsersCards_AreNotReturned()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        // Another user owns 4 copies — should not appear in test user's results
+        await _dbContext.CollectionEntries.AddAsync(new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = "other-user-456",
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetCardOwnership(card.Id);
+
+        // Assert
+        var okResult = result.Result.ShouldBeOfType<OkObjectResult>();
+        var entries = okResult.Value.ShouldBeOfType<List<CollectionEntryDto>>();
+        entries.ShouldBeEmpty();
+    }
+
+    [TestMethod]
+    public async Task GetCardOwnership_NonexistentCardId_Returns404()
+    {
+        // Act
+        var result = await _controller.GetCardOwnership(Guid.NewGuid());
+
+        // Assert
+        result.Result.ShouldBeOfType<NotFoundObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task GetCardOwnership_NoUserClaim_ReturnsUnauthorized()
+    {
+        // Arrange
+        var controllerWithoutUser = new CollectionsController(_dbContext);
+        controllerWithoutUser.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await controllerWithoutUser.GetCardOwnership(card.Id);
+
+        // Assert
+        result.Result.ShouldBeOfType<UnauthorizedResult>();
+    }
+
     #region Helper Methods
 
     private async Task SeedTestCollectionAsync(
@@ -364,7 +794,7 @@ public class CollectionsControllerTests
         return cards;
     }
 
-    private Card CreateCard(string name, string setCode, string collectorNumber)
+    private Card CreateCard(string name, string setCode, string collectorNumber, string? imageUrisJson = null)
     {
         return new Card
         {
@@ -377,6 +807,7 @@ public class CollectionsControllerTests
             Rarity = "common",
             TypeLine = "Creature",
             Cmc = 1,
+            ImageUris = imageUrisJson,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

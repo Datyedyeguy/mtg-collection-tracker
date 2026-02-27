@@ -1,0 +1,45 @@
+/* Scoped styles for Collections.razor */
+
+/* Allow absolutely-positioned card previews to overflow the table container */
+.table-responsive {
+  overflow: visible;
+}
+
+/* Card name cell: hover anchor for the floating image tooltip */
+.card-name-cell {
+  position: relative;
+  white-space: nowrap;
+}
+
+/* The clickable card name link */
+.card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.card-link:hover {
+  text-decoration: underline;
+  color: var(--bs-primary);
+}
+
+/* Hidden image tooltip — appears to the right of the name cell on hover */
+.card-hover-image {
+  display: none;
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1000;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.5));
+}
+
+.card-hover-image img {
+  width: 220px;
+  border-radius: 10px;
+}
+
+/* Show the tooltip when hovering anywhere in the name cell */
+.card-name-cell:hover .card-hover-image {
+  display: block;
+}

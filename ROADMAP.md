@@ -121,7 +121,15 @@
 - [x] **Create test projects** ✅
   - [x] MTGCollectionTracker.Api.Tests (unit tests with MSTest, NSubstitute, Shouldly)
   - [x] MTGCollectionTracker.Client.Tests (frontend service tests)
-  - [ ] Integration tests infrastructure (TestContainers for PostgreSQL) - deferred
+  - [ ] **Integration tests infrastructure (TestContainers for PostgreSQL) - deferred** ⚠️ HIGH PRIORITY
+        **Why this matters:** The in-memory EF provider never generates SQL, so bugs where
+        EF/Npgsql translates LINQ differently from .NET in-memory evaluation are invisible to
+        unit tests. Known example (Feb 26, 2026): `(SharedPlatform)ce.Platform` inside a
+        LINQ-to-SQL `Select` made Npgsql emit `CAST("Platform" AS integer)`, crashing with
+        Postgres error 22P02. Zero unit tests caught it. TestContainers would have.
+        Setup: add `Testcontainers.PostgreSql` to `MTGCollectionTracker.Api.Tests`, create a
+        `PostgreSqlFixture` ([ClassInitialize] scope), replace `UseInMemoryDatabase` with
+        `UseNpgsql(fixture.ConnectionString)` + run migrations.
   - [x] Test JwtService (28 tests)
   - [x] Test CustomAuthStateProvider (token parsing, auth state management)
   - [x] Test TokenStorageService (localStorage interactions)
@@ -233,10 +241,10 @@
         showing full card info (rules text, mana cost, type, legalities, all alternate printings),
         DFC flip button for multi-faced cards, and a printings grid with thumbnails linking to
         each printing's detail page; foundation for future "Add to collection" button
-  - [ ] Add card to collection (POST /api/collections)
+  - [x] Add card to collection (POST /api/collections) ✅ (Feb 26, 2026) — upsert semantics; 201 for new entries, 200 when accumulating quantities onto an existing entry; foil quantity supported
   - [ ] Edit card quantity (PUT /api/collections/{id})
-  - [ ] Remove card from collection (DELETE /api/collections/{id})
-  - [ ] Display card images in collection view
+  - [ ] **⚠️ Remove card from collection (DELETE /api/collections/{id}) — no way to remove a card currently**; needs both backend endpoint and UI (e.g. a delete button/row action on the collection page)
+  - [x] Display card images in collection view ✅ (Feb 26, 2026) — hover over a card name to see the card art; card names are clickable links to the card detail page
   - [ ] Card details modal/page
 - [ ] **Import/Export Features**
   - [ ] Import from Moxfield CSV
@@ -455,6 +463,14 @@ CAST(regexp_replace(collector_number, '\D', '', 'g') AS int)`). Affects the "All
 ---
 
 ### Phase 6: Polish & Launch
+
+**UI/UX Review (deferred until feature-complete):**
+
+- [ ] **Consistent platform badge colors** — Paper/Arena/MTGO badge colors are defined independently in each component (`Collections.razor`, `CardDetail.razor`, etc.). Extract to a shared Blazor component (e.g. `<PlatformBadge Platform="..." />`) so color/style is defined once and applied everywhere.
+- [ ] General design pass: typography, spacing, color palette, responsive breakpoints
+- [ ] Dark mode support (optional)
+- [ ] Accessibility audit (ARIA, keyboard nav, contrast ratios)
+- [ ] Loading state consistency (spinners vs. skeleton screens)
 
 **Feature Completion:**
 

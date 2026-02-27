@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -11,6 +12,8 @@ using MTGCollectionTracker.Data;
 using MTGCollectionTracker.Data.Entities;
 using MTGCollectionTracker.Shared.DTOs.Collections;
 using MTGCollectionTracker.Shared.Enums;
+using DataPlatform = MTGCollectionTracker.Data.Entities.Platform;
+using SharedPlatform = MTGCollectionTracker.Shared.Enums.Platform;
 
 namespace MTGCollectionTracker.Api.Controllers;
 
@@ -78,51 +81,284 @@ public class CollectionsController : ControllerBase
         // Calculate pagination metadata
         var totalPages = (int)Math.Ceiling(totalUniqueCards / (double)pageSize);
 
-        // Get paginated entries with only necessary columns (projection)
-        // This generates SQL SELECT with specific columns, not SELECT *
-        var entryDtos = await baseQuery
+        // ⚠️ Platform is stored as a string in PostgreSQL (HasConversion<string>()).
+        // Casting (SharedPlatform)ce.Platform inside a LINQ-to-SQL Select causes EF/Npgsql
+        // to emit CAST("Platform" AS integer), which Postgres rejects with error 22P02.
+        // Fix: project to an anonymous type via SQL (EF handles string→DataPlatform),
+        // then cast DataPlatform→SharedPlatform in memory after ToListAsync.
+        var rawEntries = await baseQuery
             .OrderBy(ce => ce.Card.Name)
             .ThenBy(ce => ce.Card.SetCode)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(ce => new
+            {
+                ce.Id,
+                ce.CardId,
+                CardName = ce.Card.Name,
+                SetCode = ce.Card.SetCode,
+                CollectorNumber = ce.Card.CollectorNumber,
+                ce.Platform,
+                ce.Quantity,
+                ce.FoilQuantity,
+                ce.AcquiredDate,
+                ce.CreatedAt,
+                ImageUris = ce.Card.ImageUris,
+                Faces = ce.Card.Faces
+            })
+            .ToListAsync();
+
+        var entryDtos = rawEntries
             .Select(ce => new CollectionEntryDto
             {
                 Id = ce.Id,
                 CardId = ce.CardId,
-                CardName = ce.Card.Name,
-                SetCode = ce.Card.SetCode,
-                CollectorNumber = ce.Card.CollectorNumber,
-                Platform = (MTGCollectionTracker.Shared.Enums.Platform)ce.Platform,
+                CardName = ce.CardName,
+                SetCode = ce.SetCode,
+                CollectorNumber = ce.CollectorNumber,
+                Platform = (SharedPlatform)ce.Platform, // safe: in-memory cast
                 Quantity = ce.Quantity,
+                FoilQuantity = ce.FoilQuantity,
+                ImageUri = ExtractCollectionImageUri(ce.ImageUris, ce.Faces),
                 AcquiredDate = ce.AcquiredDate,
                 CreatedAt = ce.CreatedAt
             })
+            .ToList();
+
+        // Cards-by-platform totals — GroupBy on Platform has the same cast issue,
+        // so pull (Platform, Quantity) pairs from SQL and aggregate in memory.
+        var platformData = await _dbContext.CollectionEntries
+            .Where(ce => ce.UserId == userId)
+            .Select(ce => new { ce.Platform, ce.Quantity })
             .ToListAsync();
 
-        // Calculate cards by platform (for full collection, not just this page)
-        var cardsByPlatform = await _dbContext.CollectionEntries
-            .Where(ce => ce.UserId == userId)
-            .GroupBy(ce => ce.Platform)
-            .Select(g => new
-            {
-                Platform = g.Key,
-                Total = g.Sum(ce => ce.Quantity)
-            })
-            .ToListAsync();
+        var cardsByPlatform = platformData
+            .GroupBy(x => x.Platform)
+            .ToDictionary(
+                g => (SharedPlatform)g.Key,
+                g => g.Sum(x => x.Quantity));
 
         var response = new CollectionResponseDto
         {
             Entries = entryDtos,
             TotalCards = totalCards,
             TotalUniqueCards = totalUniqueCards,
-            CardsByPlatform = cardsByPlatform.ToDictionary(
-                x => (MTGCollectionTracker.Shared.Enums.Platform)x.Platform,
-                x => x.Total),
+            CardsByPlatform = cardsByPlatform,
             CurrentPage = page,
             PageSize = pageSize,
             TotalPages = totalPages
         };
 
         return Ok(response);
+    }
+
+    /// <summary>
+    /// Add a card to the user's collection with upsert semantics.
+    /// If the user already owns this card on the same platform, quantities are accumulated.
+    /// </summary>
+    /// <param name="request">Card ID, platform, and quantities to add</param>
+    /// <returns>201 Created for a new entry, 200 OK when quantities were added to an existing entry</returns>
+    [HttpPost]
+    [ProducesResponseType(typeof(CollectionEntryDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CollectionEntryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CollectionEntryDto>> AddToCollection([FromBody] AddToCollectionRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        // Validate quantities
+        if (request.Quantity < 0 || request.FoilQuantity < 0)
+        {
+            return BadRequest("Quantities cannot be negative.");
+        }
+
+        if (request.Quantity == 0 && request.FoilQuantity == 0)
+        {
+            return BadRequest("At least one quantity (Quantity or FoilQuantity) must be greater than zero.");
+        }
+
+        // Verify the card exists
+        var cardExists = await _dbContext.Cards.AnyAsync(c => c.Id == request.CardId);
+        if (!cardExists)
+        {
+            return NotFound($"Card {request.CardId} not found.");
+        }
+
+        var dataPlatform = (DataPlatform)request.Platform;
+
+        // Upsert: find existing entry for this user+card+platform combination
+        var existing = await _dbContext.CollectionEntries
+            .FirstOrDefaultAsync(ce =>
+                ce.UserId == userId &&
+                ce.CardId == request.CardId &&
+                ce.Platform == dataPlatform);
+
+        CollectionEntryDto entryDto;
+        bool isNew;
+
+        if (existing != null)
+        {
+            // Accumulate quantities onto the existing entry
+            existing.Quantity += request.Quantity;
+            existing.FoilQuantity += request.FoilQuantity;
+            existing.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+
+            entryDto = ToDto(existing);
+            isNew = false;
+        }
+        else
+        {
+            var entry = new CollectionEntry
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                CardId = request.CardId,
+                Platform = dataPlatform,
+                Quantity = request.Quantity,
+                FoilQuantity = request.FoilQuantity,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _dbContext.CollectionEntries.Add(entry);
+            await _dbContext.SaveChangesAsync();
+
+            // Reload with card navigation to populate CardName etc.
+            await _dbContext.Entry(entry).Reference(e => e.Card).LoadAsync();
+
+            entryDto = ToDto(entry);
+            isNew = true;
+        }
+
+        if (isNew)
+        {
+            return CreatedAtAction(nameof(AddToCollection), entryDto);
+        }
+
+        return Ok(entryDto);
+    }
+
+    /// <summary>
+    /// Get the authenticated user's ownership of a specific card across all platforms.
+    /// </summary>
+    /// <param name="cardId">The card's database ID</param>
+    /// <returns>List of entries (one per platform where the user owns the card); empty if not owned</returns>
+    [HttpGet("card/{cardId:guid}")]
+    [ProducesResponseType(typeof(List<CollectionEntryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<CollectionEntryDto>>> GetCardOwnership(Guid cardId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var cardExists = await _dbContext.Cards.AnyAsync(c => c.Id == cardId);
+        if (!cardExists)
+        {
+            return NotFound($"Card {cardId} not found.");
+        }
+
+        // ⚠️ Same Platform cast issue as GetCollection — project via SQL to anonymous type,
+        // then cast in memory. See GetCollection for full explanation.
+        var rawEntries = await _dbContext.CollectionEntries
+            .Where(ce => ce.UserId == userId && ce.CardId == cardId)
+            .OrderBy(ce => ce.Platform)
+            .Select(ce => new
+            {
+                ce.Id,
+                ce.CardId,
+                CardName = ce.Card.Name,
+                SetCode = ce.Card.SetCode,
+                CollectorNumber = ce.Card.CollectorNumber,
+                ce.Platform,
+                ce.Quantity,
+                ce.FoilQuantity,
+                ce.AcquiredDate,
+                ce.CreatedAt
+            })
+            .ToListAsync();
+
+        var entries = rawEntries
+            .Select(ce => new CollectionEntryDto
+            {
+                Id = ce.Id,
+                CardId = ce.CardId,
+                CardName = ce.CardName,
+                SetCode = ce.SetCode,
+                CollectorNumber = ce.CollectorNumber,
+                Platform = (SharedPlatform)ce.Platform, // safe: in-memory cast
+                Quantity = ce.Quantity,
+                FoilQuantity = ce.FoilQuantity,
+                AcquiredDate = ce.AcquiredDate,
+                CreatedAt = ce.CreatedAt
+            })
+            .ToList();
+
+        return Ok(entries);
+    }
+
+    // ── Private helpers ────────────────────────────────────────────────
+
+    private static CollectionEntryDto ToDto(CollectionEntry entry) => new()
+    {
+        Id = entry.Id,
+        CardId = entry.CardId,
+        CardName = entry.Card?.Name ?? string.Empty,
+        SetCode = entry.Card?.SetCode ?? string.Empty,
+        CollectorNumber = entry.Card?.CollectorNumber ?? string.Empty,
+        Platform = (SharedPlatform)entry.Platform,
+        Quantity = entry.Quantity,
+        FoilQuantity = entry.FoilQuantity,
+        ImageUri = ExtractCollectionImageUri(entry.Card?.ImageUris, entry.Card?.Faces),
+        AcquiredDate = entry.AcquiredDate,
+        CreatedAt = entry.CreatedAt
+    };
+
+    /// <summary>
+    /// Extracts the "normal" image URL from the card's stored Scryfall image JSON.
+    /// Falls back to the front face image for double-faced cards.
+    /// </summary>
+    private static string? ExtractCollectionImageUri(string? imageUrisJson, string? facesJson)
+    {
+        if (!string.IsNullOrEmpty(imageUrisJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(imageUrisJson);
+                if (doc.RootElement.TryGetProperty("normal", out var normalUrl))
+                {
+                    return normalUrl.GetString();
+                }
+            }
+            catch (JsonException) { }
+        }
+
+        if (!string.IsNullOrEmpty(facesJson))
+        {
+            try
+            {
+                using var facesDoc = JsonDocument.Parse(facesJson);
+                var root = facesDoc.RootElement;
+                if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+                {
+                    var firstFace = root[0];
+                    if (firstFace.TryGetProperty("image_uri", out var faceImage))
+                    {
+                        return faceImage.GetString();
+                    }
+                }
+            }
+            catch (JsonException) { }
+        }
+
+        return null;
     }
 }
