@@ -5,7 +5,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Auth;
 /// <summary>
 /// Request model for user login.
 /// </summary>
-public class LoginRequest
+public record LoginRequest
 {
     /// <summary>
     /// User's email address.

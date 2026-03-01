@@ -15,7 +15,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Cards;
 /// - Modal DFC: "Alrund, God of the Cosmos" (front) / "Hakka, Whispering Raven" (back)
 /// - Reversible: Same card, different artwork on each side
 /// </remarks>
-public class CardFaceDto
+public record CardFaceDto
 {
     /// <summary>
     /// The name of this face (e.g., "Insectile Aberration").

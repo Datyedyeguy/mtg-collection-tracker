@@ -15,7 +15,7 @@ Frontend framework choice. Options:
 
 ## Decision
 
-Use Blazor WebAssembly (.NET 10) with MudBlazor or Blazorise component library.
+Use Blazor WebAssembly (.NET 10) with Bootstrap CSS.
 
 ## Consequences
 
@@ -27,7 +27,7 @@ Use Blazor WebAssembly (.NET 10) with MudBlazor or Blazorise component library.
 - **Single Language**: No context switching between C# and JavaScript
 - **Learning Focus**: Deep dive into .NET ecosystem (project goal)
 - **Azure Integration**: First-class support in Azure Static Web Apps
-- **Component Libraries**: MudBlazor/Blazorise provide Material Design/Bootstrap components
+- **Component Libraries**: Bootstrap CSS with standard HTML components
 - **Debugging**: Full C# debugging experience in browser
 
 **Cons**:

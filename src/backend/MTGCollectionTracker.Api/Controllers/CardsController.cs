@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MTGCollectionTracker.Api.Helpers;
 using MTGCollectionTracker.Data;
 using MTGCollectionTracker.Shared.DTOs.Cards;
 
@@ -140,7 +141,7 @@ public class CardsController : ControllerBase
                     if (flavorMatch?.FlavorName != null)
                     {
                         matchedFlavorNameByOracleId[group.Key] = flavorMatch.FlavorName;
-                        var matchedImage = ExtractImageUri(flavorMatch.ImageUris, flavorMatch.Faces);
+                        var matchedImage = CardImageHelper.ExtractImageUri(flavorMatch.ImageUris, flavorMatch.Faces);
                         if (matchedImage != null)
                             matchedImageUriByOracleId[group.Key] = matchedImage;
                     }
@@ -206,7 +207,7 @@ public class CardsController : ControllerBase
             OracleText = card.OracleText,
             Colors = DeserializeJsonArray(card.Colors),
             Finishes = DeserializeJsonArray(card.Finishes),
-            ImageUri = ExtractImageUri(card.ImageUris, card.Faces),
+            ImageUri = CardImageHelper.ExtractImageUri(card.ImageUris, card.Faces),
             IsMultiFaced = card.Faces != null,
             Faces = card.Faces != null
                 ? JsonSerializer.Deserialize<List<CardFaceDto>>(card.Faces)
@@ -302,7 +303,7 @@ public class CardsController : ControllerBase
             CollectorNumber = p.CollectorNumber,
             Rarity = p.Rarity,
             Finishes = DeserializeJsonArray(p.Finishes),
-            ImageUri = ExtractImageUri(p.ImageUris, p.Faces),
+            ImageUri = CardImageHelper.ExtractImageUri(p.ImageUris, p.Faces),
             FlavorName = p.FlavorName,
         }).ToList();
 
@@ -338,7 +339,7 @@ public class CardsController : ControllerBase
             Toughness = card.Toughness,
             Colors = DeserializeJsonArray(card.Colors),
             Finishes = DeserializeJsonArray(card.Finishes),
-            ImageUri = ExtractImageUri(card.ImageUris, card.Faces),
+            ImageUri = CardImageHelper.ExtractImageUri(card.ImageUris, card.Faces),
             IsMultiFaced = card.Faces != null,
             Faces = card.Faces != null
                 ? JsonSerializer.Deserialize<List<CardFaceDto>>(card.Faces)
@@ -351,47 +352,6 @@ public class CardsController : ControllerBase
         };
 
         return Ok(dto);
-    }
-
-    /// <summary>
-    /// Extracts the "normal" image URL for a card.
-    /// For single-faced cards: reads the "normal" key from the ImageUris JSON object.
-    /// For multi-faced cards: falls back to the first face's ImageUri.
-    /// </summary>
-    private static string? ExtractImageUri(string? imageUrisJson, string? facesJson)
-    {
-        // Single-faced path: parse the ImageUris JSON object
-        if (!string.IsNullOrEmpty(imageUrisJson))
-        {
-            try
-            {
-                using var doc = JsonDocument.Parse(imageUrisJson);
-                if (doc.RootElement.TryGetProperty("normal", out var normalUrl))
-                {
-                    return normalUrl.GetString();
-                }
-            }
-            catch (JsonException)
-            {
-                // Malformed JSON — fall through to face fallback
-            }
-        }
-
-        // Multi-faced path: use the front face's image
-        if (!string.IsNullOrEmpty(facesJson))
-        {
-            try
-            {
-                var faces = JsonSerializer.Deserialize<List<CardFaceDto>>(facesJson);
-                return faces?.Count > 0 ? faces[0].ImageUri : null;
-            }
-            catch (JsonException)
-            {
-                // Malformed JSON — return null
-            }
-        }
-
-        return null;
     }
 
     /// <summary>

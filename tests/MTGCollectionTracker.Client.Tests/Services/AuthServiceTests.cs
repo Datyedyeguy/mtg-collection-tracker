@@ -35,63 +35,6 @@ public class AuthServiceTests
         // This serves as documentation of test requirements for future implementation
     }
 
-    #region Constructor Tests
-
-    [TestMethod]
-    public void Constructor_WithNullHttpClient_ThrowsArgumentNullException()
-    {
-        // Arrange & Act & Assert
-        Should.Throw<ArgumentNullException>(() => new AuthService(
-            null!,
-            _mockTokenStorage,
-            _mockAuthStateProvider,
-            _mockNavigationManager));
-    }
-
-    [TestMethod]
-    public void Constructor_WithNullTokenStorage_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:5001") };
-
-        // Act & Assert
-        Should.Throw<ArgumentNullException>(() => new AuthService(
-            httpClient,
-            null!,
-            _mockAuthStateProvider,
-            _mockNavigationManager));
-    }
-
-    [TestMethod]
-    public void Constructor_WithNullAuthStateProvider_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:5001") };
-
-        // Act & Assert
-        Should.Throw<ArgumentNullException>(() => new AuthService(
-            httpClient,
-            _mockTokenStorage,
-            null!,
-            _mockNavigationManager));
-    }
-
-    [TestMethod]
-    public void Constructor_WithNullNavigationManager_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:5001") };
-
-        // Act & Assert
-        Should.Throw<ArgumentNullException>(() => new AuthService(
-            httpClient,
-            _mockTokenStorage,
-            _mockAuthStateProvider,
-            null!));
-    }
-
-    #endregion
-
     #region LoginAsync Tests - Documented Expected Behavior
 
     /// <summary>

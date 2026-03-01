@@ -1,11 +1,11 @@
 # ADR-001: Monorepo Structure
 
-**Date**: January 12, 2026  
+**Date**: January 12, 2026
 **Status**: Accepted
 
 ## Context
 
-We need to manage multiple related projects: backend API, frontend Blazor app, WPF desktop client, shared libraries, and infrastructure code. Options:
+We need to manage multiple related projects: backend API, frontend Blazor app, Avalonia desktop client, shared libraries, and infrastructure code. Options:
 
 1. Separate repositories for each project
 2. Monorepo with all projects together

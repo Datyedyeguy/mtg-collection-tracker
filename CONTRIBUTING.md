@@ -31,6 +31,8 @@ This automatically validates before each commit:
 
 - ✅ Release build succeeds (catches warnings-as-errors)
 - ✅ All projects are in `MTGCollectionTracker.slnx`
+- ✅ EF Core migrations are in sync with the DbContext
+- ✅ No `.csproj` files override `Directory.Build.props` settings
 
 **Bypass when needed:** `git commit --no-verify`
 

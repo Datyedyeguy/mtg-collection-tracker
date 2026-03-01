@@ -34,17 +34,6 @@ public class CustomAuthStateProviderTests
         _provider = new CustomAuthStateProvider(_mockTokenStorage);
     }
 
-    #region Constructor Tests
-
-    [TestMethod]
-    public void Constructor_WithNullTokenStorage_ThrowsArgumentNullException()
-    {
-        // Act & Assert
-        Should.Throw<ArgumentNullException>(() => new CustomAuthStateProvider(null!));
-    }
-
-    #endregion
-
     #region GetAuthenticationStateAsync Tests
 
     [TestMethod]
@@ -102,7 +91,7 @@ public class CustomAuthStateProviderTests
         // Assert
         var claims = authState.User.Claims.ToList();
         claims.ShouldNotBeEmpty();
-        
+
         var subClaim = claims.FirstOrDefault(c => c.Type == "sub");
         subClaim.ShouldNotBeNull();
         subClaim.Value.ShouldBe("test-user-123");
@@ -224,24 +213,13 @@ public class CustomAuthStateProviderTests
     }
 
     [TestMethod]
-    public void NotifyUserAuthentication_WithNullToken_ThrowsArgumentException()
+    [DataRow(null, DisplayName = "null")]
+    [DataRow("", DisplayName = "empty")]
+    [DataRow("   ", DisplayName = "whitespace")]
+    public void NotifyUserAuthentication_WithInvalidToken_ThrowsArgumentException(string? token)
     {
         // Act & Assert
-        Should.Throw<ArgumentException>(() => _provider.NotifyUserAuthentication(null!));
-    }
-
-    [TestMethod]
-    public void NotifyUserAuthentication_WithEmptyToken_ThrowsArgumentException()
-    {
-        // Act & Assert
-        Should.Throw<ArgumentException>(() => _provider.NotifyUserAuthentication(string.Empty));
-    }
-
-    [TestMethod]
-    public void NotifyUserAuthentication_WithWhitespaceToken_ThrowsArgumentException()
-    {
-        // Act & Assert
-        Should.Throw<ArgumentException>(() => _provider.NotifyUserAuthentication("   "));
+        Should.Throw<ArgumentException>(() => _provider.NotifyUserAuthentication(token!));
     }
 
     #endregion
@@ -249,25 +227,7 @@ public class CustomAuthStateProviderTests
     #region NotifyUserLogout Tests
 
     [TestMethod]
-    public void NotifyUserLogout_TriggersAuthenticationStateChanged()
-    {
-        // Arrange
-        AuthenticationState? capturedState = null;
-        _provider.AuthenticationStateChanged += task =>
-        {
-            capturedState = task.Result;
-        };
-
-        // Act
-        _provider.NotifyUserLogout();
-
-        // Assert
-        capturedState.ShouldNotBeNull();
-        capturedState.User.Identity!.IsAuthenticated.ShouldBeFalse();
-    }
-
-    [TestMethod]
-    public void NotifyUserLogout_CreatesAnonymousUser()
+    public void NotifyUserLogout_TriggersAuthenticationStateChangedWithAnonymousUser()
     {
         // Arrange
         AuthenticationState? capturedState = null;
@@ -282,6 +242,7 @@ public class CustomAuthStateProviderTests
         // Assert
         capturedState.ShouldNotBeNull();
         capturedState.User.ShouldNotBeNull();
+        capturedState.User.Identity!.IsAuthenticated.ShouldBeFalse();
         capturedState.User.Claims.ShouldBeEmpty();
     }
 

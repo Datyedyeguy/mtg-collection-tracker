@@ -13,6 +13,11 @@
     2. Solution Consistency - Verifies all projects are in main solution
        (prevents tests from being skipped)
 
+    3. EF Core Migrations - Checks for pending model changes without migrations
+
+    4. Directory.Build.props Overrides - Ensures .csproj files don't override
+       centrally managed build properties
+
     If any validation fails, the commit is aborted with an error message.
 
 .NOTES
@@ -51,7 +56,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $ValidationsPassed = 0
-$ValidationsTotal = 3
+$ValidationsTotal = 4
 
 # ============================================================================
 # Validation 1: Release Build Check
@@ -114,6 +119,24 @@ else {
     Write-Host "        💡 Run: dotnet ef migrations add <Name>" -ForegroundColor $Yellow
     Write-Host "               --project src/backend/MTGCollectionTracker.Data" -ForegroundColor $Yellow
     Write-Host "               --startup-project src/backend/MTGCollectionTracker.Api" -ForegroundColor $Yellow
+    Write-Host "        💡 Or bypass with: git commit --no-verify`n" -ForegroundColor $Yellow
+    exit 1
+}
+
+# ============================================================================
+# Validation 4: Directory.Build.props Override Check
+# ============================================================================
+Write-Host "`n[4/$ValidationsTotal] 📐 Checking for Directory.Build.props overrides..." -ForegroundColor $Cyan
+
+& "$RepoRoot\scripts\Validate-DirectoryBuildProps.ps1"
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "        ✅ No .csproj property overrides" -ForegroundColor $Green
+    $ValidationsPassed++
+}
+else {
+    Write-Host "`n        ❌ Directory.Build.props override violations found!" -ForegroundColor $Red
+    Write-Host "        💡 Remove overridden properties from .csproj files" -ForegroundColor $Yellow
     Write-Host "        💡 Or bypass with: git commit --no-verify`n" -ForegroundColor $Yellow
     exit 1
 }

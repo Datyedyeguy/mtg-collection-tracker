@@ -126,14 +126,14 @@ docker exec -it mtg-postgres psql -U mtgadmin -d mtgtracker
 dotnet test
 
 # Specific project
-dotnet test src/backend/MTGCollectionTracker.Tests
+dotnet test tests/MTGCollectionTracker.Api.Tests
 ```
 
 ## Building
 
 ```bash
 # Build entire solution
-dotnet build MTGCollectionTracker.sln
+dotnet build MTGCollectionTracker.slnx
 
 # Build specific project
 dotnet build src/backend/MTGCollectionTracker.Api/MTGCollectionTracker.Api.csproj

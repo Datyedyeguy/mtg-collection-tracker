@@ -85,7 +85,7 @@
 **Priority Tasks:**
 
 - [x] **Create Shared DTOs project** ✅
-  - [x] MTGCollectionTracker.Shared (.NET Standard 2.1)
+  - [x] MTGCollectionTracker.Shared (.NET 10, originally .NET Standard 2.1)
   - [x] Define DTOs for API contracts (Auth DTOs)
   - [ ] Validation attributes and models (deferred - using Data Annotations)
 - [x] **Create ASP.NET Core 10 Web API project** ✅
@@ -392,7 +392,7 @@ CAST(regexp_replace(collector_number, '\D', '', 'g') AS int)`). Affects the "All
   - [ ] backend-ci.yml (build, test, deploy API)
   - [ ] **Run EF migrations before deployment** (`dotnet ef database update` in pipeline)
   - [ ] frontend-ci.yml (build, deploy Blazor app)
-  - [ ] desktop-ci.yml (build, sign, publish WPF client)
+  - [ ] desktop-ci.yml (build, sign, publish Avalonia client)
   - [ ] infrastructure-ci.yml (deploy Bicep templates)
   - [ ] **Code style enforcement** (`dotnet format --verify-no-changes` to enforce EditorConfig rules)
   - [ ] Consider StyleCop.Analyzers or Roslyn analyzers for additional compile-time checks
@@ -541,6 +541,15 @@ CAST(regexp_replace(collector_number, '\D', '', 'g') AS int)`). Affects the "All
 ---
 
 ## 🐛 Known Issues & Technical Debt
+
+### UI / Validation
+
+- **Foil tracking ignores card finish availability**: The collection forms (both add and edit) allow users to set foil quantities for any card, regardless of whether that card actually has a foil printing. This is a broader issue than just Arena:
+  - **Arena cards**: Arena has no foil concept at all — foil should never be an option
+  - **Cards without foil finishes**: Scryfall's `finishes` field tracks which finishes exist for each printing (e.g., `["nonfoil"]`, `["nonfoil", "foil"]`, `["etched"]`). We should validate against this data to prevent users from adding foil copies of cards that were never printed in foil.
+  - **Scope**: Both the frontend UI (hide/disable foil input) and backend API (reject invalid foil quantities) need validation
+  - **Priority**: Near-term — currently allows invalid collection data
+  - **Location**: Frontend collection add/edit components, backend `CollectionsController`
 
 ### Privacy & Compliance
 

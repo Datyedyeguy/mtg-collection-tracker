@@ -5,7 +5,7 @@
       "label": "build",
       "type": "shell",
       "command": "dotnet",
-      "args": ["build", "${workspaceFolder}/MTGCollectionTracker.sln"],
+      "args": ["build", "${workspaceFolder}/MTGCollectionTracker.slnx"],
       "group": {
         "kind": "build",
         "isDefault": true
@@ -22,21 +22,21 @@
       "label": "clean",
       "type": "shell",
       "command": "dotnet",
-      "args": ["clean", "${workspaceFolder}/MTGCollectionTracker.sln"],
+      "args": ["clean", "${workspaceFolder}/MTGCollectionTracker.slnx"],
       "problemMatcher": "$msCompile"
     },
     {
       "label": "restore",
       "type": "shell",
       "command": "dotnet",
-      "args": ["restore", "${workspaceFolder}/MTGCollectionTracker.sln"],
+      "args": ["restore", "${workspaceFolder}/MTGCollectionTracker.slnx"],
       "problemMatcher": "$msCompile"
     },
     {
       "label": "test",
       "type": "shell",
       "command": "dotnet",
-      "args": ["test", "${workspaceFolder}/MTGCollectionTracker.sln"],
+      "args": ["test", "${workspaceFolder}/MTGCollectionTracker.slnx"],
       "group": {
         "kind": "test",
         "isDefault": true

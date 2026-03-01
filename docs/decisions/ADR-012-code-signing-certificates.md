@@ -22,7 +22,7 @@ Purchase code signing certificate from DigiCert or Sectigo after beta phase.
 - No SmartScreen warnings
 - Fewer antivirus false positives
 - Users trust the application more
-- Required for Squirrel auto-update integrity
+- Required for Velopack auto-update integrity
 
 **Cons**:
 

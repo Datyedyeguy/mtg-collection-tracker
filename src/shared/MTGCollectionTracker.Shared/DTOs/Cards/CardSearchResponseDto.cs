@@ -5,7 +5,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Cards;
 /// <summary>
 /// Paginated response returned from the card search endpoint (GET /api/cards).
 /// </summary>
-public class CardSearchResponseDto
+public record CardSearchResponseDto
 {
     /// <summary>
     /// The cards matching the search criteria for the requested page.

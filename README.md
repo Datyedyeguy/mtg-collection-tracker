@@ -28,7 +28,7 @@ A comprehensive web-based collection management system for Magic: The Gathering 
 
 The MTG Arena desktop client automatically extracts your collection from **MTGA log files**:
 
-1. Download: [Latest Release](https://github.com/YOUR_USERNAME/mtg-collection-tracker/releases/latest)
+1. Download: [Latest Release](https://github.com/Datyedyeguy/mtg-collection-tracker/releases/latest)
 2. Run the installer
 3. **Enable in MTGA**: Settings → Account → "Detailed Logs (Plugin Support)"
 4. Launch the MTG Collection Tracker client
@@ -49,7 +49,7 @@ The MTG Arena desktop client automatically extracts your collection from **MTGA 
 
 - **Frontend**: Blazor WebAssembly (.NET 10), Bootstrap CSS
 - **Backend**: ASP.NET Core 10 Web API, PostgreSQL
-- **Desktop Client**: WPF (.NET 10) with auto-update (future)
+- **Desktop Client**: Avalonia UI (.NET 10) with auto-update via Velopack (future)
 - **Hosting**: Azure (Static Web Apps + App Service)
 - **Infrastructure**: Azure Bicep (Infrastructure as Code)
 
@@ -57,20 +57,21 @@ The MTG Arena desktop client automatically extracts your collection from **MTGA 
 
 🚧 **In Active Development** - Not yet publicly available
 
-Current phase: Phase 2 - Backend Foundation & Frontend Development
+Current phase: Phase 3 - Scryfall Integration & Card Management
 
 **Completed:**
 
 - ✅ Authentication (Register, Login, JWT + Refresh Tokens)
-- ✅ Collections viewing (with pagination and filtering)
+- ✅ Collections CRUD (view, add, edit, delete with pagination and filtering)
+- ✅ Card search and detail pages (Scryfall data integration)
 - ✅ Database schema (Users, Cards, Collections)
-- ✅ 80 passing tests
+- ✅ 147 tests (138 passing, 9 skipped pending HTTP mocking)
 
 **Next:**
 
-- 🔄 Scryfall data integration (Phase 3)
-- 🔄 Card search functionality
-- 🔄 Add/edit/remove cards from collection
+- 🔄 Import/export features (Moxfield CSV, Manabox CSV)
+- 🔄 Card details modal enhancements
+- 🔄 Azure deployment & CI/CD (Phase 4)
 
 See [ROADMAP.md](ROADMAP.md) for detailed progress.
 
@@ -87,7 +88,7 @@ See [ROADMAP.md](ROADMAP.md) for detailed progress.
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/mtg-collection-tracker.git
+git clone https://github.com/Datyedyeguy/mtg-collection-tracker.git
 cd mtg-collection-tracker
 
 # Start PostgreSQL (Docker)
@@ -121,9 +122,10 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed setup instructions.
        │ HTTPS
        ▼
 ┌─────────────────┐         ┌──────────────┐
-│ Static Web App  │         │ Desktop      │
-│   (Frontend)    │         │ Client (WPF) │
-└─────────────────┘         └──────┬───────┘
+│ Static Web App  │         │   Desktop    │
+│   (Frontend)    │         │   Client     │
+└─────────────────┘         │  (Avalonia)  │
+       │                    └──────┬───────┘
        │                            │
        │ REST API                   │ MTGA Log Parsing
        ▼                            ▼
@@ -163,8 +165,8 @@ Monthly Azure costs (with optimizations):
 - ✅ JWT-based authentication
 - ✅ HTTPS enforced everywhere
 - ✅ SQL injection prevention (EF Core parameterization)
-- ✅ Rate limiting on API endpoints
-- ✅ Secrets stored in Azure Key Vault
+- 🔄 Rate limiting on API endpoints (planned - Phase 5)
+- 🔄 Secrets stored in Azure Key Vault (planned - Phase 4)
 
 Found a security issue? Please report it responsibly via GitHub Security Advisories (do not open public issues for security vulnerabilities).
 
@@ -181,21 +183,21 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 ## Roadmap
 
 - [x] Phase 1: Project setup and architecture
-- [ ] Phase 2: Backend API with authentication
-- [ ] Phase 3: Frontend collection viewer
-- [ ] Phase 4: Desktop MTGA client
+- [x] Phase 2: Backend API with authentication
+- [x] Phase 3: Scryfall integration & card management (in progress)
+- [ ] Phase 4: Azure deployment & CI/CD
 - [ ] Phase 5: Import/export features
-- [ ] Phase 6: Decklist management
-- [ ] Phase 7: Physical location tracking
-- [ ] Phase 8: Mobile apps
-- [ ] Phase 9: Advanced search and statistics
-- [ ] Phase 10: Public beta launch
+- [ ] Phase 6: Desktop MTGA client
+- [ ] Phase 7: Decklist management
+- [ ] Phase 8: Physical location tracking
+- [ ] Phase 9: Mobile apps
+- [ ] Phase 10: Advanced search and statistics
 
 ## Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/mtg-collection-tracker/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/mtg-collection-tracker/discussions)
+- **Issues**: [GitHub Issues](https://github.com/Datyedyeguy/mtg-collection-tracker/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Datyedyeguy/mtg-collection-tracker/discussions)
 
 ---
 

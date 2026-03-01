@@ -135,7 +135,7 @@ When working on tasks, aim to complete all related changes before suggesting a c
 - **Public Repository**: Unlimited minutes FREE
 - **Private Repository**: 2,000 free minutes/month (GitHub Free tier)
   - Linux runners: 1x multiplier (~100 builds/month)
-  - Windows runners: 2x multiplier (~50 builds/month for WPF)
+  - Windows runners: 2x multiplier (~50 builds/month for Avalonia)
   - Additional minutes: $0.008/minute (Linux), $0.016/minute (Windows)
 - **Recommendation**: Use public repo for learning (unlimited free) or private with GitHub Pro ($4/month = 3,000 minutes)
 - **Monitoring**: Track usage in GitHub Settings → Billing
@@ -179,7 +179,7 @@ When working on tasks, aim to complete all related changes before suggesting a c
 
 - **Framework**: Blazor WebAssembly (.NET 10)
 - **Build Tool**: .NET SDK (no Node.js required)
-- **UI Library**: MudBlazor or Blazorise (Bootstrap/Material Design components)
+- **UI Library**: Bootstrap CSS
 - **State Management**: Built-in Blazor state management + HTTP client
 - **Routing**: Blazor Router
 - **Hosting**: Azure Static Web Apps (Free tier)
@@ -201,26 +201,26 @@ When working on tasks, aim to complete all related changes before suggesting a c
 
 #### Desktop Client (MTGA Integration)
 
-- **Framework**: WPF (.NET 10) with modern UI (MaterialDesignInXAML or ModernWpf)
-- **Auto-Update**: Squirrel.Windows OR ClickOnce deployment
+- **Framework**: Avalonia UI (.NET 10) for cross-platform desktop support (Windows + macOS)
+- **Auto-Update**: Velopack for cross-platform auto-update
 - **Components**:
   - MTGALogParser (C# library)
     - Reads MTGA log files (explicitly authorized by "Plugin Support" setting)
     - Parses JSON payloads containing collection data
     - Uses FileSystemWatcher for real-time updates
     - ToS-compliant, same approach as 17Lands and MTGA Assistant
-  - MTGADesktopClient (WPF application)
+  - MTGADesktopClient (Avalonia application)
     - User interface for collection management
     - Integrates MTGALogParser for MTGA sync
     - API client for uploading collections to backend
-    - Auto-update support via Squirrel.Windows
+    - Auto-update support via Velopack
 
-**Why WPF over WinForms?**
+**Why Avalonia over WPF?**
 
-- Modern XAML-based UI with better styling options
-- MVVM pattern for testability
-- Better support for async operations
-- Native Windows integration
+- Cross-platform support (Windows + macOS, since MTGA runs on both)
+- Modern XAML-based UI with MVVM pattern
+- Same .NET 10 ecosystem as the rest of the stack
+- Growing community and third-party control ecosystem
 
 **Log Parsing Advantages**:
 
@@ -233,7 +233,7 @@ When working on tasks, aim to complete all related changes before suggesting a c
 
 #### Shared Components
 
-- **MTGCollectionTracker.Shared** (.NET Standard 2.1)
+- **MTGCollectionTracker.Shared** (.NET 10)
   - DTOs (Data Transfer Objects)
   - API contracts
   - Validation models
@@ -448,7 +448,7 @@ mtg-collection-tracker/
 │   └── workflows/
 │       ├── backend-ci.yml          # Build/test/deploy API
 │       ├── frontend-ci.yml         # Build/deploy Blazor app
-│       ├── desktop-ci.yml          # Build/sign/publish WPF client
+│       ├── desktop-ci.yml          # Build/sign/publish Avalonia client
 │       ├── infrastructure-ci.yml   # Deploy Bicep templates
 │       └── scryfall-sync.yml       # Scheduled card sync
 │
@@ -491,17 +491,17 @@ mtg-collection-tracker/
 │   │   │   ├── Parsers/                           # JSON log parsers
 │   │   │   ├── FileWatcher/                       # Real-time log monitoring
 │   │   │   └── MTGALogParser.csproj
-│   │   ├── MTGADesktopClient/                     # WPF app
+│   │   ├── MTGADesktopClient/                     # Avalonia app
 │   │   │   ├── ViewModels/                        # MVVM view models
-│   │   │   ├── Views/                             # XAML views
+│   │   │   ├── Views/                             # AXAML views
 │   │   │   ├── Services/                          # Log parser integration
-│   │   │   ├── App.xaml
-│   │   │   └── MainWindow.xaml
+│   │   │   ├── App.axaml
+│   │   │   └── MainWindow.axaml
 │   │   ├── LOG_PARSING_RESEARCH.md                # Implementation guide
-│   │   └── MTGADesktopClient.Installer/           # Squirrel installer
+│   │   └── MTGADesktopClient.Installer/           # Velopack installer
 │   │
 │   ├── shared/
-│   │   └── MTGCollectionTracker.Shared/           # .NET Standard 2.1
+│   │   └── MTGCollectionTracker.Shared/           # .NET 10
 │   │       ├── DTOs/                              # Request/response models
 │   │       ├── Enums/                             # Platform, Rarity, etc.
 │   │       └── Validators/                        # FluentValidation rules
@@ -528,7 +528,7 @@ mtg-collection-tracker/
 │
 ├── .gitignore
 ├── README.md                                      # User-facing documentation
-└── MTGCollectionTracker.sln                       # Root solution file
+└── MTGCollectionTracker.slnx                      # Root solution file
 ```
 
 ## Development Guidelines
@@ -538,9 +538,10 @@ mtg-collection-tracker/
 - **C#**: Follow Microsoft C# Coding Conventions
 
   - Use `var` for obvious types
-  - Async methods end with `Async` suffix
+  - Async methods end with `Async` suffix, **except** ASP.NET Core controller actions (framework convention — action names map to route names and don't use the suffix)
   - Prefer dependency injection over static classes
   - Use records for DTOs
+  - Use `[DataRow]` for parameterized tests instead of duplicating test methods for null/empty/whitespace variants
   - XML documentation for public APIs
   - **Type Safety**: Use specific types instead of strings (e.g., `Guid` for IDs, `DateTime` for timestamps, enums for known values)
   - Leverage the type system for compile-time safety rather than runtime string parsing
@@ -576,7 +577,7 @@ mtg-collection-tracker/
   - Component tests for critical UI
   - Mock services with test doubles
 
-- **Desktop**: Manual testing initially (UI automation complex for WPF)
+- **Desktop**: Manual testing initially (UI automation complex for Avalonia)
 
 ### Documentation
 
@@ -604,9 +605,9 @@ mtg-collection-tracker/
 
 ### Desktop Client Security
 
-- **Code Signing**: Sign WPF application with authenticode certificate
+- **Code Signing**: Sign Avalonia application with authenticode certificate
 - **Update Verification**: Validate update packages with digital signatures
-- **DLL Injection**: Educational use disclosure, no anti-cheat bypass
+- **Log Parsing**: ToS-compliant approach reading authorized log files
 
 ## CI/CD Pipeline
 
@@ -661,9 +662,9 @@ Steps:
 Trigger: Push to main with tag v*, paths: src/desktop/**
 Steps:
   1. Build MTGALogParser (.NET 10)
-  2. Build MTGADesktopClient (WPF)
+  2. Build MTGADesktopClient (Avalonia)
   3. Sign binaries with code signing certificate
-  4. Create Squirrel release package
+  4. Create Velopack release package
   5. Upload to Azure Blob Storage
   6. Update version endpoint for auto-update
 ```
@@ -691,13 +692,13 @@ Steps:
 
 ## Auto-Update for Desktop Client
 
-### Strategy: Squirrel.Windows
+### Strategy: Velopack
 
-- **Why?**: ClickOnce doesn't support .NET 10, Squirrel is modern and .NET-friendly
+- **Why?**: Cross-platform support (Windows + macOS), modern .NET-native updater, handles delta updates efficiently
 - **How It Works**:
 
   1. Client checks `https://api.example.com/desktop/version` on startup
-  2. If new version available, downloads `Releases` folder from blob storage
+  2. If new version available, downloads update package from blob storage
   3. Applies delta updates (only changed files)
   4. Restarts application with new version
 
@@ -752,7 +753,7 @@ resource budget 'Microsoft.Consumption/budgets@2023-05-01' = {
 2. **No Mobile Apps**: Responsive web only initially
 3. **Basic Search**: No advanced filtering (by color, CMC, format legality)
 4. **No Deck Validation**: Can add any cards, no format checking yet
-5. **MTGA Only on Windows**: DLL injection requires Windows
+5. **MTGA Only on Windows/macOS**: Log parsing requires MTGA installed on the local machine
 
 ### Future Enhancements
 
@@ -941,7 +942,7 @@ VITE_ENVIRONMENT="production"
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/mtg-collection-tracker.git
+git clone https://github.com/Datyedyeguy/mtg-collection-tracker.git
 cd mtg-collection-tracker
 
 # Backend
@@ -971,7 +972,7 @@ dotnet ef migrations add MigrationName -p MTGCollectionTracker.Data -s MTGCollec
 dotnet ef database update -p MTGCollectionTracker.Data -s MTGCollectionTracker.Api
 
 # Build all projects
-dotnet build MTGCollectionTracker.sln
+dotnet build MTGCollectionTracker.slnx
 
 # Run tests
 dotnet test
@@ -982,6 +983,6 @@ az deployment group create --resource-group mtg-tracker-rg --template-file infra
 
 ---
 
-**Last Updated**: January 12, 2026
-**Project Status**: Phase 1 - Initial Setup
-**Next Milestone**: Phase 2 - Migrate Existing MTGA Code
+**Last Updated**: February 28, 2026
+**Project Status**: Phase 3 - Scryfall Integration & Card Management
+**Next Milestone**: Phase 4 - Collection Import/Export

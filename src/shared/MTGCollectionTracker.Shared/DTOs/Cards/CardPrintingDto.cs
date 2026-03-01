@@ -7,7 +7,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Cards;
 /// of the card detail page. Contains just enough data to display a thumbnail and navigate
 /// to the full detail page for that printing.
 /// </summary>
-public class CardPrintingDto
+public record CardPrintingDto
 {
     /// <summary>
     /// Our internal database ID for this printing.

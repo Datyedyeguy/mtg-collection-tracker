@@ -6,7 +6,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Collections;
 /// <summary>
 /// Response containing a user's collection entries with metadata.
 /// </summary>
-public class CollectionResponseDto
+public record CollectionResponseDto
 {
     /// <summary>
     /// List of collection entries.

@@ -75,5 +75,5 @@ Document any changes as new ADRs (don't edit existing ones - mark as "Superseded
 
 ---
 
-**Last Updated**: February 16, 2026
-**Next Review**: May 16, 2026
+**Last Updated**: February 28, 2026
+**Next Review**: May 28, 2026

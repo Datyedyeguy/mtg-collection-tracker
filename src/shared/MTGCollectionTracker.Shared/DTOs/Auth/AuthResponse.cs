@@ -5,7 +5,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Auth;
 /// <summary>
 /// Response model returned after successful authentication.
 /// </summary>
-public class AuthResponse
+public record AuthResponse
 {
     /// <summary>
     /// JWT access token for API authorization.

@@ -1,7 +1,7 @@
 # MTGA Log Parsing - ToS-Compliant Approach
 
-**Status**: 🔬 Research Phase - **PREFERRED METHOD**  
-**Risk Level**: ✅ LOW - Explicitly authorized by Wizards via "Detailed Logs (Plugin Support)" setting  
+**Status**: 🔬 Research Phase - **PREFERRED METHOD**
+**Risk Level**: ✅ LOW - Explicitly authorized by Wizards via "Detailed Logs (Plugin Support)" setting
 
 ---
 
@@ -26,29 +26,32 @@
 
 ### Comparison to Other Methods
 
-| Method | ToS Compliance | Complexity | Reliability |
-|--------|---------------|------------|-------------|
-| **Log Parsing** | ✅ Authorized | Low | High |
-| Memory Scanning | ❌ Unauthorized | High | Medium |
-| DLL Injection | ❌ Unauthorized | Medium | Medium |
-| Screen Scraping | ❌ Unauthorized | High | Low |
+| Method          | ToS Compliance  | Complexity | Reliability |
+| --------------- | --------------- | ---------- | ----------- |
+| **Log Parsing** | ✅ Authorized   | Low        | High        |
+| Memory Scanning | ❌ Unauthorized | High       | Medium      |
+| DLL Injection   | ❌ Unauthorized | Medium     | Medium      |
+| Screen Scraping | ❌ Unauthorized | High       | Low         |
 
 ---
 
 ## MTGA Log File Locations
 
 ### Windows
+
 ```
 %APPDATA%\..\LocalLow\Wizards Of The Coast\MTGA\Player.log
 %APPDATA%\..\LocalLow\Wizards Of The Coast\MTGA\Logs\
 ```
 
 **Typical Full Path:**
+
 ```
 C:\Users\[USERNAME]\AppData\LocalLow\Wizards Of The Coast\MTGA\Player.log
 ```
 
 ### macOS
+
 ```
 ~/Library/Logs/Wizards Of The Coast/MTGA/Player.log
 ```
@@ -87,8 +90,9 @@ C:\Users\[USERNAME]\AppData\LocalLow\Wizards Of The Coast\MTGA\Player.log
 ### Example Log Entries
 
 **Collection Update:**
+
 ```json
-[UnityCrossThreadLogger]<== PlayerInventory.GetPlayerCardsV3 
+[UnityCrossThreadLogger]<== PlayerInventory.GetPlayerCardsV3
 {
   "payload": {
     "InventoryUpdates": {
@@ -101,6 +105,7 @@ C:\Users\[USERNAME]\AppData\LocalLow\Wizards Of The Coast\MTGA\Player.log
 ```
 
 **Deck List:**
+
 ```json
 [UnityCrossThreadLogger]PlayerInventory.GetDecklists
 {
@@ -166,7 +171,7 @@ public class MTGALogParser
 {
     private readonly string _logPath;
     private FileSystemWatcher _watcher;
-    
+
     public MTGALogParser()
     {
         _logPath = Path.Combine(
@@ -178,7 +183,7 @@ public class MTGALogParser
             "Player.log"
         );
     }
-    
+
     public void StartWatching()
     {
         _watcher = new FileSystemWatcher(Path.GetDirectoryName(_logPath))
@@ -186,38 +191,38 @@ public class MTGALogParser
             Filter = "Player.log",
             NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
         };
-        
+
         _watcher.Changed += OnLogFileChanged;
         _watcher.EnableRaisingEvents = true;
     }
-    
+
     private void OnLogFileChanged(object sender, FileSystemEventArgs e)
     {
         // Read new lines from log
         // Parse JSON payloads
         // Extract collection data
     }
-    
+
     public Dictionary<int, int> ParseCollection(string logContent)
     {
         var collection = new Dictionary<int, int>();
-        
+
         // Find collection JSON in logs
-        var matches = Regex.Matches(logContent, 
-            @"PlayerInventory\.GetPlayerCardsV3.*?\n.*?({.*?})", 
+        var matches = Regex.Matches(logContent,
+            @"PlayerInventory\.GetPlayerCardsV3.*?\n.*?({.*?})",
             RegexOptions.Singleline);
-        
+
         foreach (Match match in matches)
         {
             var json = match.Groups[1].Value;
             var payload = JsonSerializer.Deserialize<InventoryPayload>(json);
-            
+
             foreach (var card in payload.InventoryUpdates)
             {
                 collection[card.Key] = card.Value;
             }
         }
-        
+
         return collection;
     }
 }
@@ -228,18 +233,21 @@ public class MTGALogParser
 ## Known Tools Using This Approach
 
 ### 17Lands (https://www.17lands.com/)
+
 - **Purpose**: Draft analytics and win rate tracking
 - **Method**: Reads MTGA logs
 - **Status**: Operational since 2020, endorsed by WotC employees on Twitter
 - **Data**: Draft picks, match results, deck performance
 
 ### MTGA Assistant (GitHub)
+
 - **Purpose**: Collection tracking and draft helper
 - **Method**: Log parsing
 - **Status**: Open source, actively maintained
 - **Repo**: https://github.com/Razviar/mtgap
 
 ### Untapped.gg (Original Implementation)
+
 - **Started**: Log parsing approach
 - **Migrated**: Later moved to memory scanning for additional features
 - **Still Uses Logs**: For match history and some events
@@ -249,27 +257,32 @@ public class MTGALogParser
 ## Advantages of Log Parsing
 
 ### 1. **ToS Compliant** ✅
+
 - Explicitly authorized via "Plugin Support" setting
 - No process modification
 - No reverse engineering required
 - Reading public files the game writes
 
 ### 2. **Cross-Platform** ✅
+
 - Works on Windows and macOS
 - Same log format on both platforms
 - No platform-specific APIs needed
 
 ### 3. **Reliable** ✅
+
 - Less fragile than memory scanning
 - Doesn't break with every game update
 - JSON format is stable
 
 ### 4. **No Admin Required** ✅
+
 - Standard file read permissions
 - Doesn't require elevated privileges
 - Better user experience
 
 ### 5. **Safe for Users** ✅
+
 - No account termination risk
 - Wizards explicitly allows it
 - Used by popular, endorsed tools
@@ -279,11 +292,13 @@ public class MTGALogParser
 ## Limitations
 
 ### 1. **User Must Enable Setting**
+
 - Detailed Logs are not enabled by default
 - Users must: Settings → Account → Enable "Detailed Logs (Plugin Support)"
 - Solution: Clear instructions in our app
 
 ### 2. **Delayed Updates**
+
 - Collection only written to logs when:
   - Opening collection screen
   - Game startup
@@ -292,11 +307,13 @@ public class MTGALogParser
 - Solution: Instruct users to open collection screen
 
 ### 3. **Log File Size**
+
 - Player.log can grow to 100+ MB
 - Older entries may be rotated
 - Solution: Process incrementally, watch for new lines
 
 ### 4. **Arena-Specific GrpIds**
+
 - Logs use Arena's internal GrpIds
 - Must map to Scryfall oracle IDs
 - Solution: Use Scryfall's arena_id field (existing CardTranslator logic)
@@ -308,42 +325,49 @@ public class MTGALogParser
 ### Phase 1: Proof of Concept (1 week)
 
 **Goals:**
+
 - [ ] Locate and read Player.log
 - [ ] Extract collection JSON from logs
 - [ ] Parse GrpIds and quantities
 - [ ] Map to Scryfall cards
 
 **Deliverables:**
+
 - Console app that prints collection to terminal
 - Validate against known collection (manual count)
 
 ### Phase 2: File Watching (1 week)
 
 **Goals:**
+
 - [ ] Implement FileSystemWatcher
 - [ ] Detect new log entries in real-time
 - [ ] Handle log rotation
 - [ ] Maintain collection state
 
 **Deliverables:**
+
 - Service that runs in background
 - Detects collection changes automatically
 
 ### Phase 3: Desktop Integration (2 weeks)
 
 **Goals:**
-- [ ] Integrate into WPF desktop app
+
+- [ ] Integrate into Avalonia desktop app
 - [ ] Add UI for sync status
 - [ ] Upload to backend API
 - [ ] Handle offline/online scenarios
 
 **Deliverables:**
+
 - Full desktop client with log parsing
 - Automatic background sync
 
 ### Phase 4: Polish & Launch (1 week)
 
 **Goals:**
+
 - [ ] Add setup wizard (enable detailed logs)
 - [ ] Error handling and logging
 - [ ] User documentation
@@ -416,7 +440,7 @@ public class MTGALogParser
 1. **Verify Log Contents** - Install MTGA, enable detailed logs, examine Player.log
 2. **Build Parser** - Create C# library to extract collection data
 3. **Test Accuracy** - Validate parsed data matches actual collection
-4. **Integrate** - Add to WPF desktop client
+4. **Integrate** - Add to Avalonia desktop client
 5. **Document** - Create user guide for enabling detailed logs
 
 ---
@@ -430,7 +454,6 @@ public class MTGALogParser
 
 ---
 
-**Last Updated**: January 12, 2026  
-**Status**: Recommended approach - ToS compliant  
+**Last Updated**: January 12, 2026
+**Status**: Recommended approach - ToS compliant
 **Estimated Implementation**: 4-5 weeks to production
-

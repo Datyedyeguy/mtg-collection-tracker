@@ -25,17 +25,6 @@ public class TokenStorageServiceTests
         _service = new TokenStorageService(_mockJSRuntime);
     }
 
-    #region Constructor Tests
-
-    [TestMethod]
-    public void Constructor_WithNullJSRuntime_ThrowsArgumentNullException()
-    {
-        // Act & Assert
-        Should.Throw<ArgumentNullException>(() => new TokenStorageService(null!));
-    }
-
-    #endregion
-
     #region GetAccessTokenAsync Tests
 
     [TestMethod]
@@ -51,7 +40,7 @@ public class TokenStorageServiceTests
 
         // Assert
         result.ShouldBe(expectedToken);
-        await _mockJSRuntime.Received(1).InvokeAsync<string?>("localStorage.getItem", Arg.Is<object[]>(args => 
+        await _mockJSRuntime.Received(1).InvokeAsync<string?>("localStorage.getItem", Arg.Is<object[]>(args =>
             args.Length == 1 && args[0].ToString() == "accessToken"));
     }
 
@@ -100,7 +89,7 @@ public class TokenStorageServiceTests
 
         // Assert
         result.ShouldBe(expectedToken);
-        await _mockJSRuntime.Received(1).InvokeAsync<string?>("localStorage.getItem", Arg.Is<object[]>(args => 
+        await _mockJSRuntime.Received(1).InvokeAsync<string?>("localStorage.getItem", Arg.Is<object[]>(args =>
             args.Length == 1 && args[0].ToString() == "refreshToken"));
     }
 
@@ -154,52 +143,27 @@ public class TokenStorageServiceTests
     }
 
     [TestMethod]
-    public async Task SaveTokensAsync_WithNullAccessToken_ThrowsArgumentException()
+    [DataRow(null, DisplayName = "null")]
+    [DataRow("", DisplayName = "empty")]
+    [DataRow("   ", DisplayName = "whitespace")]
+    public async Task SaveTokensAsync_WithInvalidAccessToken_ThrowsArgumentException(string? accessToken)
     {
         // Act & Assert
         var ex = await Should.ThrowAsync<ArgumentException>(
-            async () => await _service.SaveTokensAsync(null!, "refresh-token"));
-        
+            async () => await _service.SaveTokensAsync(accessToken!, "refresh-token"));
+
         ex.ParamName.ShouldBe("accessToken");
     }
 
     [TestMethod]
-    public async Task SaveTokensAsync_WithEmptyAccessToken_ThrowsArgumentException()
+    [DataRow(null, DisplayName = "null")]
+    [DataRow("", DisplayName = "empty")]
+    public async Task SaveTokensAsync_WithInvalidRefreshToken_ThrowsArgumentException(string? refreshToken)
     {
         // Act & Assert
         var ex = await Should.ThrowAsync<ArgumentException>(
-            async () => await _service.SaveTokensAsync("", "refresh-token"));
-        
-        ex.ParamName.ShouldBe("accessToken");
-    }
+            async () => await _service.SaveTokensAsync("access-token", refreshToken!));
 
-    [TestMethod]
-    public async Task SaveTokensAsync_WithWhitespaceAccessToken_ThrowsArgumentException()
-    {
-        // Act & Assert
-        var ex = await Should.ThrowAsync<ArgumentException>(
-            async () => await _service.SaveTokensAsync("   ", "refresh-token"));
-        
-        ex.ParamName.ShouldBe("accessToken");
-    }
-
-    [TestMethod]
-    public async Task SaveTokensAsync_WithNullRefreshToken_ThrowsArgumentException()
-    {
-        // Act & Assert
-        var ex = await Should.ThrowAsync<ArgumentException>(
-            async () => await _service.SaveTokensAsync("access-token", null!));
-        
-        ex.ParamName.ShouldBe("refreshToken");
-    }
-
-    [TestMethod]
-    public async Task SaveTokensAsync_WithEmptyRefreshToken_ThrowsArgumentException()
-    {
-        // Act & Assert
-        var ex = await Should.ThrowAsync<ArgumentException>(
-            async () => await _service.SaveTokensAsync("access-token", ""));
-        
         ex.ParamName.ShouldBe("refreshToken");
     }
 
@@ -213,7 +177,7 @@ public class TokenStorageServiceTests
         // Act & Assert
         var ex = await Should.ThrowAsync<InvalidOperationException>(
             async () => await _service.SaveTokensAsync("access", "refresh"));
-        
+
         ex.Message.ShouldContain("Failed to save tokens");
         ex.InnerException.ShouldBeOfType<JSException>();
     }

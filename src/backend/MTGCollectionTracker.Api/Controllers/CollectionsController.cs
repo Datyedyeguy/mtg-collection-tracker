@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MTGCollectionTracker.Api.Helpers;
 using MTGCollectionTracker.Data;
 using MTGCollectionTracker.Data.Entities;
 using MTGCollectionTracker.Shared.DTOs.Collections;
@@ -119,7 +120,7 @@ public class CollectionsController : ControllerBase
                 Platform = (SharedPlatform)ce.Platform, // safe: in-memory cast
                 Quantity = ce.Quantity,
                 FoilQuantity = ce.FoilQuantity,
-                ImageUri = ExtractCollectionImageUri(ce.ImageUris, ce.Faces),
+                ImageUri = CardImageHelper.ExtractImageUri(ce.ImageUris, ce.Faces),
                 AcquiredDate = ce.AcquiredDate,
                 CreatedAt = ce.CreatedAt
             })
@@ -397,48 +398,8 @@ public class CollectionsController : ControllerBase
         Platform = (SharedPlatform)entry.Platform,
         Quantity = entry.Quantity,
         FoilQuantity = entry.FoilQuantity,
-        ImageUri = ExtractCollectionImageUri(entry.Card?.ImageUris, entry.Card?.Faces),
+        ImageUri = CardImageHelper.ExtractImageUri(entry.Card?.ImageUris, entry.Card?.Faces),
         AcquiredDate = entry.AcquiredDate,
         CreatedAt = entry.CreatedAt
     };
-
-    /// <summary>
-    /// Extracts the "normal" image URL from the card's stored Scryfall image JSON.
-    /// Falls back to the front face image for double-faced cards.
-    /// </summary>
-    private static string? ExtractCollectionImageUri(string? imageUrisJson, string? facesJson)
-    {
-        if (!string.IsNullOrEmpty(imageUrisJson))
-        {
-            try
-            {
-                using var doc = JsonDocument.Parse(imageUrisJson);
-                if (doc.RootElement.TryGetProperty("normal", out var normalUrl))
-                {
-                    return normalUrl.GetString();
-                }
-            }
-            catch (JsonException) { }
-        }
-
-        if (!string.IsNullOrEmpty(facesJson))
-        {
-            try
-            {
-                using var facesDoc = JsonDocument.Parse(facesJson);
-                var root = facesDoc.RootElement;
-                if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
-                {
-                    var firstFace = root[0];
-                    if (firstFace.TryGetProperty("image_uri", out var faceImage))
-                    {
-                        return faceImage.GetString();
-                    }
-                }
-            }
-            catch (JsonException) { }
-        }
-
-        return null;
-    }
 }

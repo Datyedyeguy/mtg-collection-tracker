@@ -6,7 +6,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Collections;
 /// <summary>
 /// Represents a single card in a user's collection on a specific platform.
 /// </summary>
-public class CollectionEntryDto
+public record CollectionEntryDto
 {
     /// <summary>
     /// Unique identifier for this collection entry.

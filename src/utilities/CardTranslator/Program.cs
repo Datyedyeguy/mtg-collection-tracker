@@ -1,7 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 if (args.Length == 0)
 {
@@ -79,16 +85,16 @@ if (needsDownload)
     Console.WriteLine("Fetching Scryfall bulk data metadata...");
     var bulkDataResponse = await httpClient.GetFromJsonAsync<BulkDataResponse>("https://api.scryfall.com/bulk-data");
     var defaultCards = bulkDataResponse?.Data?.FirstOrDefault(x => x.Type == "default_cards");
-    
+
     if (defaultCards == null)
     {
         Console.WriteLine("ERROR: Could not find default_cards bulk data");
         return;
     }
-    
+
     Console.WriteLine($"Downloading Scryfall bulk data (~{defaultCards.Size / 1024 / 1024}MB)...");
     Console.WriteLine("This may take a minute...");
-    
+
     var bulkJson = await httpClient.GetStringAsync(defaultCards.DownloadUri);
     File.WriteAllText(cacheFile, bulkJson);
     Console.WriteLine("Download complete, cached for 24 hours");
@@ -142,7 +148,7 @@ foreach (var (grpId, count) in collection)
         string name = EscapeCsvField(card.Name);
         string edition = card.Set.ToUpper();
         string collectorNumber = EscapeCsvField(card.CollectorNumber);
-        
+
         csvOutput.AppendLine($"{count},{name},{edition},{collectorNumber}");
         found++;
     }
@@ -184,10 +190,10 @@ class BulkDataInfo
 {
     [JsonPropertyName("type")]
     public string Type { get; set; } = "";
-    
+
     [JsonPropertyName("download_uri")]
     public string DownloadUri { get; set; } = "";
-    
+
     [JsonPropertyName("size")]
     public long Size { get; set; }
 }
@@ -196,13 +202,13 @@ class ScryfallCard
 {
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
-    
+
     [JsonPropertyName("set")]
     public string Set { get; set; } = "";
-    
+
     [JsonPropertyName("collector_number")]
     public string CollectorNumber { get; set; } = "";
-    
+
     [JsonPropertyName("arena_id")]
     public int? ArenaId { get; set; }
 }

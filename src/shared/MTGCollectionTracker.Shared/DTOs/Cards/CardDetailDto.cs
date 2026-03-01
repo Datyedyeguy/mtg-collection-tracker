@@ -8,7 +8,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Cards;
 /// power/toughness, and a list of all other printings that share the same Oracle ID.
 /// Returned by GET /api/cards/{id}.
 /// </summary>
-public class CardDetailDto
+public record CardDetailDto
 {
     /// <summary>
     /// Our internal database ID for this specific printing.

@@ -12,10 +12,10 @@
        │ HTTPS
        ▼
 ┌─────────────────┐         ┌──────────────┐
-│ Static Web App  │         │ Desktop      │
-│   (Frontend)    │         │ Client (WPF) │
-└─────────────────┘         └──────┬───────┘
-       │                            │
+│ Static Web App  │         │   Desktop    │
+│   (Frontend)    │         │   Client     │
+└─────────────────┘         │  (Avalonia)  │
+       │                    └──────┬───────┘
        │ REST API                   │ MTGA Log Parsing
        ▼                            ▼
 ┌─────────────────┐         ┌──────────────┐
@@ -37,7 +37,7 @@
 
 - Responsive web application (C#)
 - .NET 10 build system (no Node.js required)
-- MudBlazor or Blazorise component library
+- Bootstrap CSS components
 - Shared C# DTOs with backend (no type generation)
 - Hosted on Azure Static Web Apps
 
@@ -48,12 +48,12 @@
 - EF Core 10 + PostgreSQL
 - Hosted on Azure App Service (Linux B1 tier)
 
-### Desktop Client (WPF)
+### Desktop Client (Avalonia UI)
 
 - MTGALogParser: Reads MTGA log files (ToS-compliant)
 - Uploads collection data to backend API
-- Auto-update via Squirrel.Windows
-- Code-signed for Windows
+- Auto-update via Velopack
+- Code-signed for Windows and macOS
 
 ### Database (PostgreSQL)
 
@@ -106,7 +106,7 @@
 - Passwords hashed with BCrypt
 - Azure Key Vault for secrets
 - CORS restricted to frontend domain
-- Rate limiting on API endpoints
+- Rate limiting on API endpoints (planned - Phase 5)
 
 ## Scalability Considerations
 

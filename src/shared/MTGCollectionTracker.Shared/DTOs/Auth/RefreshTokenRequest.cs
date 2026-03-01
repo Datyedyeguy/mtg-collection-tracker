@@ -5,7 +5,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Auth;
 /// <summary>
 /// Request model for refreshing an access token.
 /// </summary>
-public class RefreshTokenRequest
+public record RefreshTokenRequest
 {
     /// <summary>
     /// The refresh token obtained during login.

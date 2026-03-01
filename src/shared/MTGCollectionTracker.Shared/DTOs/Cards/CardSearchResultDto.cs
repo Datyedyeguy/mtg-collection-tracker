@@ -7,7 +7,7 @@ namespace MTGCollectionTracker.Shared.DTOs.Cards;
 /// Represents a single card returned from a card search query.
 /// Contains display data and enough information to add the card to a collection.
 /// </summary>
-public class CardSearchResultDto
+public record CardSearchResultDto
 {
     /// <summary>
     /// Our internal database identifier for this card printing.
