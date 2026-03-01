@@ -1,6 +1,6 @@
 # API Documentation
 
-> **Status**: ✅ Core endpoints implemented. Authentication, Collections (view + add cards + ownership query), and Cards (search + detail) are functional.
+> **Status**: ✅ Core endpoints implemented. Authentication, Collections (full CRUD: view, add, edit, delete, ownership query), and Cards (search + detail) are functional.
 
 Base URL:
 
@@ -321,6 +321,67 @@ Returns an empty array `[]` if the card is not in the user's collection.
 
 ---
 
+#### Update Collection Entry
+
+**Endpoint:** `PUT /api/collections/{id}`
+
+**Authorization:** Required (Bearer token)
+
+**Absolute value semantics:** The entry's quantities are set to the provided values, not incremented. To remove a card entirely, use `DELETE /api/collections/{id}` instead.
+
+**Request Body:**
+
+```json
+{
+  "quantity": 2,
+  "foilQuantity": 1
+}
+```
+
+**Success Response (200 OK):**
+
+Returns the updated `CollectionEntryDto` (same shape as entries in `GET /api/collections`).
+
+**Validation Rules:**
+
+- `quantity` and `foilQuantity` must be >= 0
+- At least one must be > 0 (use DELETE to remove entirely)
+
+**Error Responses:**
+
+- **400 Bad Request** — both quantities are zero, or a quantity is negative
+- **404 Not Found** — entry does not exist or belongs to another user
+- **401 Unauthorized** — missing/invalid token
+
+---
+
+#### Remove Card from Collection
+
+**Endpoint:** `DELETE /api/collections/{id}`
+
+**Authorization:** Required (Bearer token)
+
+Permanently removes the collection entry. This is a hard delete — the entry cannot be recovered.
+
+**Example Request:**
+
+```http
+DELETE /api/collections/c3d4e5f6-7890-1234-5678-90abcdef1234
+```
+
+**Success Response (204 No Content):**
+
+Empty body.
+
+**Error Responses:**
+
+- **404 Not Found** — entry does not exist or belongs to another user
+- **401 Unauthorized** — missing/invalid token
+
+**Security Note:** Returns 404 (not 403) for entries belonging to other users to avoid leaking existence information.
+
+---
+
 #### Import Collection (Future - Phase 3)
 
 ```http
@@ -563,6 +624,6 @@ When the API is running locally, Swagger UI is available at:
 
 ---
 
-**Last Updated:** February 22, 2026
+**Last Updated:** February 28, 2026
 **API Version:** v1
-**Next Update:** Phase 4 (Card details endpoint, collection management)
+**Next Update:** Phase 4 (Import/export, Azure deployment)

@@ -66,6 +66,8 @@ erDiagram
         guid CardId FK
         string Platform
         int Quantity
+        int FoilQuantity
+        int EtchedQuantity
         timestamptz AcquiredDate
         timestamptz CreatedAt
         timestamptz UpdatedAt

@@ -7,6 +7,9 @@ using MTGCollectionTracker.Shared;
 using MTGCollectionTracker.Shared.DTOs.Collections;
 using MTGCollectionTracker.Shared.Enums;
 
+// Alias to keep code concise when referring to the update request DTO
+using UpdateRequest = MTGCollectionTracker.Shared.DTOs.Collections.UpdateCollectionEntryRequest;
+
 namespace MTGCollectionTracker.Client.Services;
 
 /// <summary>
@@ -40,6 +43,22 @@ public interface ICollectionService
     /// <param name="cardId">The card's database ID</param>
     /// <returns>List of per-platform entries (empty if not owned), or an error message</returns>
     Task<(List<CollectionEntryDto>? data, string? error)> GetCardOwnershipAsync(Guid cardId);
+
+    /// <summary>
+    /// Update a collection entry's quantities (absolute values, not deltas).
+    /// </summary>
+    /// <param name="entryId">The collection entry ID</param>
+    /// <param name="quantity">New nonfoil quantity</param>
+    /// <param name="foilQuantity">New foil quantity</param>
+    /// <returns>Updated entry or an error message</returns>
+    Task<(CollectionEntryDto? data, string? error)> UpdateCollectionEntryAsync(Guid entryId, int quantity, int foilQuantity);
+
+    /// <summary>
+    /// Remove a card from the user's collection.
+    /// </summary>
+    /// <param name="entryId">The collection entry ID</param>
+    /// <returns>Null on success, or an error message</returns>
+    Task<string?> DeleteCollectionEntryAsync(Guid entryId);
 }
 
 /// <summary>
@@ -183,6 +202,92 @@ public class CollectionService : ICollectionService
         catch (Exception ex)
         {
             return (null, $"An unexpected error occurred: {ex.Message}");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<(CollectionEntryDto? data, string? error)> UpdateCollectionEntryAsync(Guid entryId, int quantity, int foilQuantity)
+    {
+        try
+        {
+            var request = new UpdateRequest
+            {
+                Quantity = quantity,
+                FoilQuantity = foilQuantity
+            };
+
+            var response = await _httpClient.PutAsJsonAsync(ApiRoutes.CollectionsUpdate(entryId), request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<CollectionEntryDto>();
+                if (data == null)
+                {
+                    return (null, "Invalid response from server");
+                }
+
+                return (data, null);
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return (null, "You must be logged in to manage your collection");
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return (null, "Collection entry not found");
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                return (null, !string.IsNullOrWhiteSpace(message) ? message : "Invalid request");
+            }
+
+            return (null, $"Failed to update collection entry: {response.StatusCode}");
+        }
+        catch (HttpRequestException)
+        {
+            return (null, "Unable to connect to server. Please check your connection.");
+        }
+        catch (Exception ex)
+        {
+            return (null, $"An unexpected error occurred: {ex.Message}");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> DeleteCollectionEntryAsync(Guid entryId)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync(ApiRoutes.CollectionsDelete(entryId));
+
+            if (response.IsSuccessStatusCode)
+            {
+                return null; // success — no error
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return "You must be logged in to manage your collection";
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return "Collection entry not found";
+            }
+
+            return $"Failed to delete collection entry: {response.StatusCode}";
+        }
+        catch (HttpRequestException)
+        {
+            return "Unable to connect to server. Please check your connection.";
+        }
+        catch (Exception ex)
+        {
+            return $"An unexpected error occurred: {ex.Message}";
         }
     }
 }

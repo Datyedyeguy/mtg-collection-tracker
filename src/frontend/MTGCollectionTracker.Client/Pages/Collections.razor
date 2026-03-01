@@ -72,6 +72,14 @@
     }
     else if (collection != null)
     {
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @successMessage
+                <button type="button" class="btn-close" @onclick="() => successMessage = null" aria-label="Close"></button>
+            </div>
+        }
+
         <div class="table-responsive">
             <table class="table table-striped table-hover">
                 <thead>
@@ -81,6 +89,7 @@
                         <th>Collector #</th>
                         <th>Platform</th>
                         <th>Qty</th>
+                        <th style="width: 120px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -113,10 +122,59 @@
                                 }
                             </td>
                             <td>
-                                @entry.Quantity
-                                @if (entry.FoilQuantity > 0)
+                                @if (editingEntryId == entry.Id)
                                 {
-                                    <span class="text-muted ms-1 small">+ @entry.FoilQuantity✦</span>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <input type="number" min="0" class="form-control form-control-sm" style="width: 60px;"
+                                               @bind="editQuantity" @bind:event="oninput" />
+                                        <span class="text-muted small">✦</span>
+                                        <input type="number" min="0" class="form-control form-control-sm" style="width: 60px;"
+                                               @bind="editFoilQuantity" @bind:event="oninput" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    @entry.Quantity
+                                    @if (entry.FoilQuantity > 0)
+                                    {
+                                        <span class="text-muted ms-1 small">+ @entry.FoilQuantity✦</span>
+                                    }
+                                }
+                            </td>
+                            <td>
+                                @if (editingEntryId == entry.Id)
+                                {
+                                    <button class="btn btn-sm btn-success me-1" title="Save"
+                                            @onclick="() => SaveEditAsync(entry.Id)" disabled="@isSaving">
+                                        @if (isSaving) { <span class="spinner-border spinner-border-sm"></span> }
+                                        else { <span>✓</span> }
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" title="Cancel"
+                                            @onclick="CancelEdit" disabled="@isSaving">✕</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-primary me-1" title="Edit quantities"
+                                            @onclick="() => StartEdit(entry)" disabled="@isLoading">
+                                        ✎
+                                    </button>
+                                    @if (deletingEntryId == entry.Id)
+                                    {
+                                        <button class="btn btn-sm btn-danger me-1" title="Confirm delete"
+                                                @onclick="() => ConfirmDeleteAsync(entry.Id)" disabled="@isSaving">
+                                            @if (isSaving) { <span class="spinner-border spinner-border-sm"></span> }
+                                            else { <span>Yes</span> }
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" title="Cancel"
+                                                @onclick="CancelDelete" disabled="@isSaving">No</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger" title="Remove from collection"
+                                                @onclick="() => StartDelete(entry.Id)" disabled="@isLoading">
+                                            🗑
+                                        </button>
+                                    }
                                 }
                             </td>
                         </tr>
@@ -201,7 +259,17 @@
     private int currentPage = 1;
     private const int PageSize = 50;
     private bool isLoading = true;
+    private bool isSaving;
     private string? errorMessage;
+    private string? successMessage;
+
+    // Inline edit state
+    private Guid? editingEntryId;
+    private int editQuantity;
+    private int editFoilQuantity;
+
+    // Delete confirmation state
+    private Guid? deletingEntryId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -241,6 +309,8 @@
     {
         isLoading = true;
         errorMessage = null;
+        CancelEdit();
+        CancelDelete();
 
         var (data, error) = await CollectionService.GetCollectionAsync(selectedPlatform, currentPage, PageSize);
 
@@ -255,5 +325,77 @@
         }
 
         isLoading = false;
+    }
+
+    // ── Inline edit ──────────────────────────────────────────────────
+
+    private void StartEdit(CollectionEntryDto entry)
+    {
+        CancelDelete();
+        editingEntryId = entry.Id;
+        editQuantity = entry.Quantity;
+        editFoilQuantity = entry.FoilQuantity;
+    }
+
+    private void CancelEdit()
+    {
+        editingEntryId = null;
+    }
+
+    private async Task SaveEditAsync(Guid entryId)
+    {
+        isSaving = true;
+        errorMessage = null;
+        successMessage = null;
+
+        var (data, error) = await CollectionService.UpdateCollectionEntryAsync(entryId, editQuantity, editFoilQuantity);
+
+        if (error != null)
+        {
+            errorMessage = error;
+        }
+        else
+        {
+            successMessage = $"Updated {data!.CardName} quantities.";
+            editingEntryId = null;
+            await LoadCollectionAsync();
+        }
+
+        isSaving = false;
+    }
+
+    // ── Delete ───────────────────────────────────────────────────────
+
+    private void StartDelete(Guid entryId)
+    {
+        CancelEdit();
+        deletingEntryId = entryId;
+    }
+
+    private void CancelDelete()
+    {
+        deletingEntryId = null;
+    }
+
+    private async Task ConfirmDeleteAsync(Guid entryId)
+    {
+        isSaving = true;
+        errorMessage = null;
+        successMessage = null;
+
+        var error = await CollectionService.DeleteCollectionEntryAsync(entryId);
+
+        if (error != null)
+        {
+            errorMessage = error;
+        }
+        else
+        {
+            successMessage = "Card removed from collection.";
+            deletingEntryId = null;
+            await LoadCollectionAsync();
+        }
+
+        isSaving = false;
     }
 }

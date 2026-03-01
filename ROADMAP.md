@@ -1,7 +1,7 @@
 # MTG Collection Tracker - Roadmap
 
-**Last Updated**: February 16, 2026
-**Current Phase**: Phase 3 - Scryfall Integration & Card Management (Scryfall Data Sync Complete)
+**Last Updated**: February 28, 2026
+**Current Phase**: Phase 3 - Scryfall Integration & Card Management (Collection CRUD Complete)
 
 ---
 
@@ -242,8 +242,8 @@
         DFC flip button for multi-faced cards, and a printings grid with thumbnails linking to
         each printing's detail page; foundation for future "Add to collection" button
   - [x] Add card to collection (POST /api/collections) ✅ (Feb 26, 2026) — upsert semantics; 201 for new entries, 200 when accumulating quantities onto an existing entry; foil quantity supported
-  - [ ] Edit card quantity (PUT /api/collections/{id})
-  - [ ] **⚠️ Remove card from collection (DELETE /api/collections/{id}) — no way to remove a card currently**; needs both backend endpoint and UI (e.g. a delete button/row action on the collection page)
+  - [x] Edit card quantity (PUT /api/collections/{id}) ✅ (Feb 28, 2026) — absolute value semantics; inline edit UI on collection page with save/cancel; validation (no negatives, at least one qty > 0)
+  - [x] Remove card from collection (DELETE /api/collections/{id}) ✅ (Feb 28, 2026) — hard delete with inline confirmation on collection page; returns 404 for other users' entries (no existence leakage); 16 new tests
   - [x] Display card images in collection view ✅ (Feb 26, 2026) — hover over a card name to see the card art; card names are clickable links to the card detail page
   - [ ] Card details modal/page
 - [ ] **Import/Export Features**

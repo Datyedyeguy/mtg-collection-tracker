@@ -752,6 +752,442 @@ public class CollectionsControllerTests
         result.Result.ShouldBeOfType<UnauthorizedResult>();
     }
 
+    // ── UpdateCollectionEntry tests ─────────────────────────────────────────
+
+    [TestMethod]
+    public async Task UpdateCollectionEntry_ValidRequest_Returns200WithUpdatedEntry()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new UpdateCollectionEntryRequest
+        {
+            Quantity = 2,
+            FoilQuantity = 3
+        };
+
+        // Act
+        var result = await _controller.UpdateCollectionEntry(entry.Id, request);
+
+        // Assert
+        var okResult = result.Result.ShouldBeOfType<OkObjectResult>();
+        var dto = okResult.Value.ShouldBeOfType<CollectionEntryDto>();
+
+        dto.Quantity.ShouldBe(2);
+        dto.FoilQuantity.ShouldBe(3);
+        dto.CardName.ShouldBe("Lightning Bolt");
+    }
+
+    [TestMethod]
+    public async Task UpdateCollectionEntry_ValidRequest_UpdatesDatabase()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var originalUpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 1,
+            CreatedAt = originalUpdatedAt,
+            UpdatedAt = originalUpdatedAt
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new UpdateCollectionEntryRequest
+        {
+            Quantity = 10,
+            FoilQuantity = 0
+        };
+
+        // Act
+        await _controller.UpdateCollectionEntry(entry.Id, request);
+
+        // Assert
+        var dbEntry = await _dbContext.CollectionEntries.SingleAsync();
+        dbEntry.Quantity.ShouldBe(10);
+        dbEntry.FoilQuantity.ShouldBe(0);
+        dbEntry.UpdatedAt.ShouldBeGreaterThan(originalUpdatedAt);
+    }
+
+    [TestMethod]
+    public async Task UpdateCollectionEntry_NonexistentId_Returns404()
+    {
+        // Act
+        var request = new UpdateCollectionEntryRequest { Quantity = 1, FoilQuantity = 0 };
+        var result = await _controller.UpdateCollectionEntry(Guid.NewGuid(), request);
+
+        // Assert
+        result.Result.ShouldBeOfType<NotFoundObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task UpdateCollectionEntry_OtherUsersEntry_Returns404()
+    {
+        // Arrange — entry belongs to a different user
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = "other-user-456",
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new UpdateCollectionEntryRequest { Quantity = 1, FoilQuantity = 0 };
+
+        // Act
+        var result = await _controller.UpdateCollectionEntry(entry.Id, request);
+
+        // Assert
+        result.Result.ShouldBeOfType<NotFoundObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task UpdateCollectionEntry_BothQuantitiesZero_Returns400()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new UpdateCollectionEntryRequest { Quantity = 0, FoilQuantity = 0 };
+
+        // Act
+        var result = await _controller.UpdateCollectionEntry(entry.Id, request);
+
+        // Assert
+        result.Result.ShouldBeOfType<BadRequestObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task UpdateCollectionEntry_NegativeQuantity_Returns400()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new UpdateCollectionEntryRequest { Quantity = -1, FoilQuantity = 0 };
+
+        // Act
+        var result = await _controller.UpdateCollectionEntry(entry.Id, request);
+
+        // Assert
+        result.Result.ShouldBeOfType<BadRequestObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task UpdateCollectionEntry_NegativeFoilQuantity_Returns400()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new UpdateCollectionEntryRequest { Quantity = 1, FoilQuantity = -5 };
+
+        // Act
+        var result = await _controller.UpdateCollectionEntry(entry.Id, request);
+
+        // Assert
+        result.Result.ShouldBeOfType<BadRequestObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task UpdateCollectionEntry_NoUserClaim_ReturnsUnauthorized()
+    {
+        // Arrange
+        var controllerWithoutUser = new CollectionsController(_dbContext);
+        controllerWithoutUser.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+
+        var request = new UpdateCollectionEntryRequest { Quantity = 1, FoilQuantity = 0 };
+
+        // Act
+        var result = await controllerWithoutUser.UpdateCollectionEntry(Guid.NewGuid(), request);
+
+        // Assert
+        result.Result.ShouldBeOfType<UnauthorizedResult>();
+    }
+
+    [TestMethod]
+    public async Task UpdateCollectionEntry_SetQuantityToZeroWithFoil_Succeeds()
+    {
+        // Arrange — user wants 0 nonfoil but 2 foil (valid: at least one > 0)
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new UpdateCollectionEntryRequest { Quantity = 0, FoilQuantity = 2 };
+
+        // Act
+        var result = await _controller.UpdateCollectionEntry(entry.Id, request);
+
+        // Assert
+        var okResult = result.Result.ShouldBeOfType<OkObjectResult>();
+        var dto = okResult.Value.ShouldBeOfType<CollectionEntryDto>();
+        dto.Quantity.ShouldBe(0);
+        dto.FoilQuantity.ShouldBe(2);
+    }
+
+    // ── DeleteCollectionEntry tests ─────────────────────────────────────────
+
+    [TestMethod]
+    public async Task DeleteCollectionEntry_ValidEntry_Returns204()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.DeleteCollectionEntry(entry.Id);
+
+        // Assert
+        result.ShouldBeOfType<NoContentResult>();
+    }
+
+    [TestMethod]
+    public async Task DeleteCollectionEntry_ValidEntry_RemovesFromDatabase()
+    {
+        // Arrange
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        await _controller.DeleteCollectionEntry(entry.Id);
+
+        // Assert
+        var dbEntries = await _dbContext.CollectionEntries.ToListAsync();
+        dbEntries.ShouldBeEmpty();
+    }
+
+    [TestMethod]
+    public async Task DeleteCollectionEntry_NonexistentId_Returns404()
+    {
+        // Act
+        var result = await _controller.DeleteCollectionEntry(Guid.NewGuid());
+
+        // Assert
+        result.ShouldBeOfType<NotFoundObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task DeleteCollectionEntry_OtherUsersEntry_Returns404()
+    {
+        // Arrange — entry belongs to a different user
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = "other-user-456",
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.DeleteCollectionEntry(entry.Id);
+
+        // Assert — returns 404 (not 403) to avoid leaking existence of other users' entries
+        result.ShouldBeOfType<NotFoundObjectResult>();
+    }
+
+    [TestMethod]
+    public async Task DeleteCollectionEntry_OtherUsersEntry_DoesNotDeleteFromDatabase()
+    {
+        // Arrange — entry belongs to a different user
+        var card = CreateCard("Lightning Bolt", "M21", "123");
+        await _dbContext.Cards.AddAsync(card);
+        var entry = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = "other-user-456",
+            CardId = card.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddAsync(entry);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        await _controller.DeleteCollectionEntry(entry.Id);
+
+        // Assert — other user's entry should still exist
+        var dbEntries = await _dbContext.CollectionEntries.ToListAsync();
+        dbEntries.Count.ShouldBe(1);
+    }
+
+    [TestMethod]
+    public async Task DeleteCollectionEntry_NoUserClaim_ReturnsUnauthorized()
+    {
+        // Arrange
+        var controllerWithoutUser = new CollectionsController(_dbContext);
+        controllerWithoutUser.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+
+        // Act
+        var result = await controllerWithoutUser.DeleteCollectionEntry(Guid.NewGuid());
+
+        // Assert
+        result.ShouldBeOfType<UnauthorizedResult>();
+    }
+
+    [TestMethod]
+    public async Task DeleteCollectionEntry_DoesNotAffectOtherEntries()
+    {
+        // Arrange — user has two entries, delete one
+        var card1 = CreateCard("Lightning Bolt", "M21", "123");
+        var card2 = CreateCard("Counterspell", "MH2", "56");
+        await _dbContext.Cards.AddRangeAsync(card1, card2);
+
+        var entry1 = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card1.Id,
+            Platform = Platform.Paper,
+            Quantity = 4,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var entry2 = new CollectionEntry
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            CardId = card2.Id,
+            Platform = Platform.Paper,
+            Quantity = 2,
+            FoilQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _dbContext.CollectionEntries.AddRangeAsync(entry1, entry2);
+        await _dbContext.SaveChangesAsync();
+
+        // Act — delete only entry1
+        await _controller.DeleteCollectionEntry(entry1.Id);
+
+        // Assert — entry2 still exists
+        var dbEntries = await _dbContext.CollectionEntries.ToListAsync();
+        dbEntries.Count.ShouldBe(1);
+        dbEntries[0].Id.ShouldBe(entry2.Id);
+    }
+
     #region Helper Methods
 
     private async Task SeedTestCollectionAsync(

@@ -77,6 +77,19 @@ public static class ApiRoutes
     public const string CollectionsAdd = Collections;
 
     /// <summary>
+    /// Update a collection entry's quantities: PUT /api/collections/{id}
+    /// Accepts: UpdateCollectionEntryRequest (absolute quantities, not deltas)
+    /// Returns: CollectionEntryDto (200 OK) or 404 if not found
+    /// </summary>
+    public static string CollectionsUpdate(Guid id) => $"{Collections}/{id}";
+
+    /// <summary>
+    /// Remove a card from the user's collection: DELETE /api/collections/{id}
+    /// Returns: 204 No Content on success, 404 if not found
+    /// </summary>
+    public static string CollectionsDelete(Guid id) => $"{Collections}/{id}";
+
+    /// <summary>
     /// Get the user's ownership of a specific card across all platforms: GET /api/collections/card/{cardId}
     /// Returns: List&lt;CollectionEntryDto&gt; (empty list if not owned on any platform)
     /// </summary>

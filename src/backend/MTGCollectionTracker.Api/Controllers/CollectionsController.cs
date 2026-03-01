@@ -305,6 +305,86 @@ public class CollectionsController : ControllerBase
         return Ok(entries);
     }
 
+    /// <summary>
+    /// Update the quantities of an existing collection entry.
+    /// Uses absolute values — the entry's quantities are set to the provided values, not incremented.
+    /// </summary>
+    /// <param name="id">The collection entry ID</param>
+    /// <param name="request">New quantity and foil quantity (absolute values)</param>
+    /// <returns>200 OK with the updated entry, 404 if not found, 400 for invalid quantities</returns>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(CollectionEntryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CollectionEntryDto>> UpdateCollectionEntry(Guid id, [FromBody] UpdateCollectionEntryRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        // Validate quantities
+        if (request.Quantity < 0 || request.FoilQuantity < 0)
+        {
+            return BadRequest("Quantities cannot be negative.");
+        }
+
+        if (request.Quantity == 0 && request.FoilQuantity == 0)
+        {
+            return BadRequest("At least one quantity must be greater than zero. Use DELETE to remove the entry.");
+        }
+
+        // Find the entry — scoped to the authenticated user (returns 404 for other users' entries)
+        var entry = await _dbContext.CollectionEntries
+            .Include(ce => ce.Card)
+            .FirstOrDefaultAsync(ce => ce.Id == id && ce.UserId == userId);
+
+        if (entry is null)
+        {
+            return NotFound($"Collection entry {id} not found.");
+        }
+
+        entry.Quantity = request.Quantity;
+        entry.FoilQuantity = request.FoilQuantity;
+        entry.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(ToDto(entry));
+    }
+
+    /// <summary>
+    /// Remove a card from the user's collection.
+    /// </summary>
+    /// <param name="id">The collection entry ID</param>
+    /// <returns>204 No Content on success, 404 if not found</returns>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteCollectionEntry(Guid id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        // Find the entry — scoped to the authenticated user (returns 404 for other users' entries)
+        var entry = await _dbContext.CollectionEntries
+            .FirstOrDefaultAsync(ce => ce.Id == id && ce.UserId == userId);
+
+        if (entry is null)
+        {
+            return NotFound($"Collection entry {id} not found.");
+        }
+
+        _dbContext.CollectionEntries.Remove(entry);
+        await _dbContext.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     // ── Private helpers ────────────────────────────────────────────────
 
     private static CollectionEntryDto ToDto(CollectionEntry entry) => new()
