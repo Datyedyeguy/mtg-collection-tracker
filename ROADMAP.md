@@ -245,21 +245,59 @@
   - [x] Display card images in collection view ✅ (Feb 26, 2026) — hover over a card name to see the card art; card names are clickable links to the card detail page
   - [ ] Card details modal/page
 - [ ] **Import/Export Features**
+  - [ ] Import from Manabox CSV ← **START HERE** (design documented below)
   - [ ] Import from Moxfield CSV
-  - [ ] Import from Manabox CSV
   - [ ] Import from generic CSV format
   - [ ] Export collection to CSV
   - [ ] Validation and error reporting for imports
-  - [ ] Create console application in src/utilities/ScryfallSync
-  - [ ] Download Scryfall bulk data (Default Cards endpoint - ~501 MB)
-  - [ ] Parse JSON and map to Card entities
-  - [ ] Bulk insert to PostgreSQL (~111,000 cards)
-  - [ ] Handle card images (store URLs, not download files)
-  - [ ] Add command-line arguments (--force-refresh, --dry-run)
-  - [ ] Progress reporting and error handling
-  - [ ] Add Scryfall attribution/credit in UI footer
-    - Index on (UserId, CardId, Platform) for uniqueness
-  - Partial indexes on ArenaId/MtgoId (only where NOT NULL)
+
+  **Manabox Import — Design (Mar 1, 2026)**
+
+  CSV format (confirmed from real export, 5,257 rows):
+  ```
+  Binder Name,Binder Type,Name,Set code,Set name,Collector number,Foil,Rarity,
+  Quantity,ManaBox ID,Scryfall ID,Purchase price,Misprint,Altered,Condition,Language,Purchase price currency
+  ```
+  Key mappings:
+  - `Scryfall ID` → look up `Card` in our DB by `ScryfallId` (primary match key)
+  - `Foil = normal` → `Quantity`; `Foil = foil` → `FoilQuantity`
+  - All Manabox cards are implicitly **Paper** platform
+  - `Binder Type` values in this export: `binder` (4,568), `deck` (406), `list` (283)
+  - `Binder Name` is user-defined; `list` type is not necessarily a wishlist — it's just
+    another user-created grouping (e.g. "To Buy" happened to be a list, but the format
+    gives no authoritative owned-vs-wanted signal)
+
+  **Two-step import UI** (don't bake in assumptions — let the user decide):
+
+  Step 1 — File selected, parse header + binder names client-side in Blazor, show options:
+  - Checkbox list of binder names from *their* file, grouped by binder type, all checked by default
+  - Radio: "Add to existing quantities" (Accumulate) vs "Replace existing quantities" (Replace)
+  - Summary: "X cards across Y binders selected"
+
+  Step 2 — Confirm → POST to API with file + chosen options.
+
+  DTOs:
+  ```csharp
+  // Sent as multipart/form-data
+  // File: IFormFile
+  // IncludedBinders: List<string> (binder names to include)
+  // Mode: ImportMode enum
+
+  public enum ImportMode { Accumulate, Replace }
+
+  public record ManaboxImportResultDto
+  {
+      public int Imported { get; init; }      // new entries created
+      public int Updated { get; init; }       // existing entries modified
+      public int Skipped { get; init; }       // Scryfall ID not in our card DB
+      public List<string> SkippedCards { get; init; }  // names for user feedback
+  }
+  ```
+
+  Endpoint: `POST /api/collections/import/manabox`
+  - Use `CsvHelper` NuGet package (handles quoted commas in card names)
+  - Bulk-lookup cards by ScryfallId in a single DB query (not per-row)
+  - Wrap all inserts/updates in a single transaction
 
 **Nice to Have (Defer to Later):**
 
