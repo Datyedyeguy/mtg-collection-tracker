@@ -12,6 +12,13 @@
 
 name: Utilities CI
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -46,15 +53,27 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      # Step 3: Build ScryfallSync
+      # Step 3: Restore NuGet packages
+      - name: Restore dependencies
+        run: |
+          dotnet restore src/utilities/ScryfallSync/ScryfallSync.csproj
+          dotnet restore src/utilities/CardTranslator/CardTranslator.csproj
+
+      # Step 4: Check for known vulnerable packages (fails build if any found)
+      - name: Audit for vulnerabilities
+        run: |
+          dotnet list src/utilities/ScryfallSync/ScryfallSync.csproj package --vulnerable --include-transitive
+          dotnet list src/utilities/CardTranslator/CardTranslator.csproj package --vulnerable --include-transitive
+
+      # Step 5: Build ScryfallSync
       - name: Build ScryfallSync
-        run: dotnet build src/utilities/ScryfallSync/ScryfallSync.csproj --configuration Release
+        run: dotnet build src/utilities/ScryfallSync/ScryfallSync.csproj --configuration Release --no-restore
 
-      # Step 4: Build CardTranslator
+      # Step 6: Build CardTranslator
       - name: Build CardTranslator
-        run: dotnet build src/utilities/CardTranslator/CardTranslator.csproj --configuration Release
+        run: dotnet build src/utilities/CardTranslator/CardTranslator.csproj --configuration Release --no-restore
 
-      # Step 5: Test ScryfallSync (validate parsing with --dry-run)
+      # Step 7: Test ScryfallSync (validate parsing with --dry-run)
       # Note: Since we don't have sample Scryfall data in repo, we skip this for now
       # Future: Add unit tests for ScryfallSync parsing logic
       # - name: Test ScryfallSync parsing
