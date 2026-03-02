@@ -103,7 +103,7 @@
   - [x] MTGCollectionTracker.Api.Tests (unit tests with MSTest, NSubstitute, Shouldly)
   - [x] MTGCollectionTracker.Client.Tests (frontend service tests)
   - [x] CollectionsController tests (12 tests covering pagination, filtering, auth)
-  - [ ] Integration tests infrastructure (TestContainers for PostgreSQL) - deferred
+  - [x] Integration tests infrastructure (TestContainers for PostgreSQL) ✅ (Mar 1, 2026)
   - [x] Test JwtService (28 tests)
   - [x] Test CustomAuthStateProvider (token parsing, auth state management)
   - [x] Test TokenStorageService (localStorage interactions)
@@ -121,15 +121,13 @@
 - [x] **Create test projects** ✅
   - [x] MTGCollectionTracker.Api.Tests (unit tests with MSTest, NSubstitute, Shouldly)
   - [x] MTGCollectionTracker.Client.Tests (frontend service tests)
-  - [ ] **Integration tests infrastructure (TestContainers for PostgreSQL) - deferred** ⚠️ HIGH PRIORITY
-        **Why this matters:** The in-memory EF provider never generates SQL, so bugs where
-        EF/Npgsql translates LINQ differently from .NET in-memory evaluation are invisible to
-        unit tests. Known example (Feb 26, 2026): `(SharedPlatform)ce.Platform` inside a
-        LINQ-to-SQL `Select` made Npgsql emit `CAST("Platform" AS integer)`, crashing with
-        Postgres error 22P02. Zero unit tests caught it. TestContainers would have.
-        Setup: add `Testcontainers.PostgreSql` to `MTGCollectionTracker.Api.Tests`, create a
-        `PostgreSqlFixture` ([ClassInitialize] scope), replace `UseInMemoryDatabase` with
-        `UseNpgsql(fixture.ConnectionString)` + run migrations.
+  - [x] **Integration tests infrastructure (TestContainers for PostgreSQL)** ✅ (Mar 1, 2026)
+        14 integration tests in `CollectionsIntegrationTests` + `CardsIntegrationTests`. Each class
+        owns its own Postgres 17 container via `[ClassInitialize]`/`[ClassCleanup]` — Docker failure
+        only affects integration tests, not the 114 unit tests. Isolation via `TRUNCATE CASCADE`
+        per test method. Immediately caught a second production bug on first run: the platform
+        `WHERE` filter (`ce.Platform == (DataPlatform)platform.Value` inline in LINQ) also generated
+        incorrect SQL in Postgres. Fixed in `CollectionsController.GetCollection`. 128/128 tests pass.
   - [x] Test JwtService (28 tests)
   - [x] Test CustomAuthStateProvider (token parsing, auth state management)
   - [x] Test TokenStorageService (localStorage interactions)

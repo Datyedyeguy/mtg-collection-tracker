@@ -72,7 +72,12 @@ public class CollectionsController : ControllerBase
         // Apply platform filter if specified
         if (platform.HasValue)
         {
-            baseQuery = baseQuery.Where(ce => ce.Platform == (MTGCollectionTracker.Data.Entities.Platform)platform.Value);
+            // ⚠️ Extract the cast to a local variable before the lambda.
+            // EF Core / Npgsql needs a pre-evaluated constant so HasConversion<string>()
+            // produces WHERE "Platform" = 'Arena' rather than attempting to translate
+            // the cast expression directly to SQL (which generates an incorrect numeric comparison).
+            var filterPlatform = (DataPlatform)platform.Value;
+            baseQuery = baseQuery.Where(ce => ce.Platform == filterPlatform);
         }
 
         // Calculate totals using database aggregation (efficient for large datasets)
