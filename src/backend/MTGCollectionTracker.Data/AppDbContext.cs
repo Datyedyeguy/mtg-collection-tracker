@@ -39,6 +39,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CollectionEntry> CollectionEntries => Set<CollectionEntry>();
 
     /// <summary>
+    /// Background import jobs (Manabox CSV imports processed by ImportWorkerService).
+    /// </summary>
+    public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
+
+    /// <summary>
     /// Configure entity relationships, indexes, and constraints.
     /// </summary>
     protected override void OnModelCreating(ModelBuilder builder)
@@ -130,8 +135,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             // Index on Platform for filtering by platform
             entity.HasIndex(ce => ce.Platform);
 
-            // Composite index for common query patterns (user + card + platform)
-            entity.HasIndex(ce => new { ce.UserId, ce.CardId, ce.Platform });
+            // Unique constraint for user + card + platform — enforces one entry per ownership slot
+            // and is required for the UNNEST + ON CONFLICT upsert used in bulk imports.
+            entity.HasIndex(ce => new { ce.UserId, ce.CardId, ce.Platform })
+                .IsUnique()
+                .HasDatabaseName("IX_CollectionEntries_UserId_CardId_Platform");
 
             // Composite index for user + platform queries (optimizes filtered collection views)
             entity.HasIndex(ce => new { ce.UserId, ce.Platform });
@@ -159,6 +167,27 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasDefaultValueSql("NOW()");
         });
 
-        // Future entities (Decklists, etc.) will be configured here
+        // Configure ImportJob
+        builder.Entity<ImportJob>(entity =>
+        {
+            entity.HasKey(j => j.Id);
+
+            // Index for the worker's startup re-scan (Pending/Processing jobs for any user)
+            entity.HasIndex(j => j.Status);
+
+            // Index for the status-poll endpoint (user sees only their own jobs)
+            entity.HasIndex(j => new { j.UserId, j.Status });
+
+            // Status stored as string for readability ("Pending", "Processing", etc.)
+            entity.Property(j => j.Status).HasConversion<string>();
+
+            entity.Property(j => j.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(j => j.UpdatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasOne(j => j.User)
+                .WithMany()
+                .HasForeignKey(j => j.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

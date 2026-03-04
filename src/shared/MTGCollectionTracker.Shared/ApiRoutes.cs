@@ -95,6 +95,27 @@ public static class ApiRoutes
     /// </summary>
     public static string CollectionsGetByCard(Guid cardId) => $"{Collections}/card/{cardId}";
 
+    // ── Import endpoints ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Base path for import endpoints.
+    /// </summary>
+    private const string Imports = $"{ApiBase}/imports";
+
+    /// <summary>
+    /// Submit a Manabox CSV import: POST /api/imports/manabox
+    /// Accepts: multipart/form-data — file (IFormFile), includedBinders (List&lt;string&gt;), mode (ImportMode)
+    /// Returns: 202 Accepted + ImportJobAcceptedDto { JobId, StatusUrl }
+    /// The import runs in the background; poll the StatusUrl for progress.
+    /// </summary>
+    public const string ImportsManabox = $"{Imports}/manabox";
+
+    /// <summary>
+    /// Poll for import job status: GET /api/imports/{jobId}/status
+    /// Returns: ImportJobStatusDto { Status, Progress, Result?, Error? }
+    /// </summary>
+    public static string ImportsStatus(Guid jobId) => $"{Imports}/{jobId}/status";
+
     /// <summary>
     /// Base path for card endpoints.
     /// </summary>

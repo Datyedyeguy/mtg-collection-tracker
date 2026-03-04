@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -59,6 +60,18 @@ public interface ICollectionService
     /// <param name="entryId">The collection entry ID</param>
     /// <returns>Null on success, or an error message</returns>
     Task<string?> DeleteCollectionEntryAsync(Guid entryId);
+
+    /// <summary>
+    /// Submit a Manabox CSV export for background import. Returns immediately with a job ID.
+    /// Poll <see cref="GetImportStatusAsync"/> until Status is Completed or Failed.
+    /// </summary>
+    Task<(ImportJobAcceptedDto? data, string? error)> SubmitManaboxImportAsync(
+        Stream fileContent, string fileName, List<string> includedBinders, ImportMode mode);
+
+    /// <summary>
+    /// Poll for the status of a background import job.
+    /// </summary>
+    Task<(ImportJobStatusDto? data, string? error)> GetImportStatusAsync(Guid jobId);
 }
 
 /// <summary>
@@ -288,6 +301,69 @@ public class CollectionService : ICollectionService
         catch (Exception ex)
         {
             return $"An unexpected error occurred: {ex.Message}";
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<(ImportJobAcceptedDto? data, string? error)> SubmitManaboxImportAsync(
+        Stream fileContent, string fileName, List<string> includedBinders, ImportMode mode)
+    {
+        try
+        {
+            using var form = new MultipartFormDataContent();
+
+            var fileStreamContent = new StreamContent(fileContent);
+            fileStreamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/csv");
+            form.Add(fileStreamContent, "file", fileName);
+
+            // Send binder list as a JSON array string — the controller deserializes it
+            form.Add(new StringContent(System.Text.Json.JsonSerializer.Serialize(includedBinders)), "includedBinders");
+            form.Add(new StringContent(mode.ToString()), "mode");
+
+            var response = await _httpClient.PostAsync(ApiRoutes.ImportsManabox, form);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<ImportJobAcceptedDto>();
+                return data is null ? (null, "Invalid response from server") : (data, null);
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                return (null, "You must be logged in to import cards.");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                return (null, !string.IsNullOrWhiteSpace(message) ? message : "Invalid import request.");
+            }
+
+            return (null, $"Upload failed: {response.StatusCode}");
+        }
+        catch (HttpRequestException)
+        {
+            return (null, "Unable to connect to server. Please check your connection.");
+        }
+        catch (Exception ex)
+        {
+            return (null, $"An unexpected error occurred: {ex.Message}");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<(ImportJobStatusDto? data, string? error)> GetImportStatusAsync(Guid jobId)
+    {
+        try
+        {
+            var data = await _httpClient.GetFromJsonAsync<ImportJobStatusDto>(ApiRoutes.ImportsStatus(jobId));
+            return data is null ? (null, "Invalid response from server") : (data, null);
+        }
+        catch (HttpRequestException)
+        {
+            return (null, "Unable to connect to server. Please check your connection.");
+        }
+        catch (Exception ex)
+        {
+            return (null, $"An unexpected error occurred: {ex.Message}");
         }
     }
 }

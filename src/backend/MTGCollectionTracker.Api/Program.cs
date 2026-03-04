@@ -54,6 +54,13 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSett
 // Register JWT Service
 builder.Services.AddScoped<IJwtService, JwtService>();
 
+// Import job background processing
+// ManaboxCsvParser is stateless so singleton is safe — avoids a captive-dependency
+// issue since ImportWorkerService (BackgroundService = singleton) holds it directly.
+builder.Services.AddSingleton<IImportJobQueue, ImportJobQueue>();
+builder.Services.AddSingleton<IManaboxCsvParser, ManaboxCsvParser>();
+builder.Services.AddHostedService<ImportWorkerService>();
+
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
