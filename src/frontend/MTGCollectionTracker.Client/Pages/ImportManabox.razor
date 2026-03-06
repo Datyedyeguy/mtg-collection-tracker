@@ -26,11 +26,15 @@
             <div class="row text-center mt-2 mb-2">
                 <div class="col">
                     <div class="fs-4 fw-bold text-success">@result.Imported</div>
-                    <div class="text-muted small">New entries</div>
+                    <div class="text-muted small">Unique cards</div>
                 </div>
                 <div class="col">
                     <div class="fs-4 fw-bold text-primary">@result.Updated</div>
                     <div class="text-muted small">Updated</div>
+                </div>
+                <div class="col">
+                    <div class="fs-4 fw-bold text-info">@result.TotalCopies</div>
+                    <div class="text-muted small">Total copies</div>
                 </div>
                 <div class="col">
                     <div class="fs-4 fw-bold @(result.Skipped > 0 ? "text-warning" : "text-muted")">@result.Skipped</div>

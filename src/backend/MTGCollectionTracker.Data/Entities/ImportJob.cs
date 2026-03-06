@@ -79,6 +79,13 @@ public class ImportJob
     /// <summary>Number of rows skipped (Scryfall ID not found in local DB).</summary>
     public int Skipped { get; set; }
 
+    /// <summary>
+    /// Total card copies imported — sum of (Quantity + FoilQuantity) across all matched rows.
+    /// Unlike <see cref="Imported"/> (which counts unique entries), this counts actual physical
+    /// cards. e.g. 5 copies of Lightning Bolt = 1 entry, 5 copies.
+    /// </summary>
+    public int TotalCopies { get; set; }
+
     /// <summary>JSON-serialised <c>List&lt;string&gt;</c> of skipped card names.</summary>
     public string SkippedCardsJson { get; set; } = "[]";
 

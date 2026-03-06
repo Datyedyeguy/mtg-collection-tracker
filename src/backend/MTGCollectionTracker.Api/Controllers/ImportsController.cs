@@ -143,6 +143,7 @@ public class ImportsController : ControllerBase
                 Imported     = job.Imported,
                 Updated      = job.Updated,
                 Skipped      = job.Skipped,
+                TotalCopies  = job.TotalCopies,
                 SkippedCards = skippedCards,
             };
         }

@@ -25,6 +25,13 @@ public record ManaboxImportResultDto
     public int Skipped { get; init; }
 
     /// <summary>
+    /// Total card copies imported (sum of all Quantity + FoilQuantity across matched rows).
+    /// Will be higher than <see cref="Imported"/> + <see cref="Updated"/> when a single card
+    /// has a quantity greater than 1 — e.g. 3 copies of Lightning Bolt = 1 entry, 3 copies.
+    /// </summary>
+    public int TotalCopies { get; init; }
+
+    /// <summary>
     /// Human-readable names of the skipped cards, for display in the UI.
     /// Populated from the <c>Name</c> column of the CSV (not from the database).
     /// </summary>

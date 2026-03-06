@@ -218,6 +218,7 @@ public sealed class ImportWorkerService : BackgroundService
 
         job.Skipped = skippedNames.Count;
         job.SkippedCardsJson = JsonSerializer.Serialize(skippedNames);
+        job.TotalCopies = matched.Sum(r => r.Qty + r.FoilQty);
 
         if (matched.Count == 0)
         {
