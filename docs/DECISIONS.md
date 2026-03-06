@@ -26,6 +26,7 @@ Each decision is documented in a separate file following this structure:
 - [ADR-016: Authentication Implementation Strategy](decisions/ADR-016-authentication-implementation.md)
 - [ADR-017: Testing Libraries (MSTest, NSubstitute, Shouldly)](decisions/ADR-017-testing-libraries.md)
 - [ADR-019: Shared API Route Constants](decisions/ADR-019-shared-api-routes.md)
+- [ADR-021: Background Job Pipeline for CSV Imports](decisions/ADR-021-background-job-import-pipeline.md)
 
 ### Pending Decisions
 
