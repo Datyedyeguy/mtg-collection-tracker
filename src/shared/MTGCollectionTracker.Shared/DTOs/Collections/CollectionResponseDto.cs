@@ -19,7 +19,8 @@ public record CollectionResponseDto
     public int TotalUniqueCards { get; set; }
 
     /// <summary>
-    /// Total number of cards counting all copies.
+    /// Total number of physical card copies: sum of Quantity + FoilQuantity + EtchedQuantity
+    /// across all matching entries. Matches the TotalCopies figure reported by the import pipeline.
     /// </summary>
     public int TotalCards { get; set; }
 

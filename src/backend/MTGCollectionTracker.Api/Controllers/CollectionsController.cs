@@ -82,7 +82,9 @@ public class CollectionsController : ControllerBase
 
         // Calculate totals using database aggregation (efficient for large datasets)
         var totalUniqueCards = await baseQuery.CountAsync();
-        var totalCards = await baseQuery.SumAsync(ce => ce.Quantity);
+        // Sum all copy types so the total matches what the import pipeline reports.
+        // FoilQuantity and EtchedQuantity are real physical cards and must be counted.
+        var totalCards = await baseQuery.SumAsync(ce => ce.Quantity + ce.FoilQuantity + ce.EtchedQuantity);
 
         // Calculate pagination metadata
         var totalPages = (int)Math.Ceiling(totalUniqueCards / (double)pageSize);
@@ -135,14 +137,14 @@ public class CollectionsController : ControllerBase
         // so pull (Platform, Quantity) pairs from SQL and aggregate in memory.
         var platformData = await _dbContext.CollectionEntries
             .Where(ce => ce.UserId == userId)
-            .Select(ce => new { ce.Platform, ce.Quantity })
+            .Select(ce => new { ce.Platform, ce.Quantity, ce.FoilQuantity, ce.EtchedQuantity })
             .ToListAsync();
 
         var cardsByPlatform = platformData
             .GroupBy(x => x.Platform)
             .ToDictionary(
                 g => (SharedPlatform)g.Key,
-                g => g.Sum(x => x.Quantity));
+                g => g.Sum(x => x.Quantity + x.FoilQuantity + x.EtchedQuantity));
 
         var response = new CollectionResponseDto
         {
