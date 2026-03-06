@@ -1,6 +1,6 @@
 # API Documentation
 
-> **Status**: ✅ Core endpoints implemented. Authentication, Collections (full CRUD: view, add, edit, delete, ownership query), and Cards (search + detail) are functional.
+> **Status**: ✅ Core endpoints implemented. Authentication, Collections (full CRUD: view, add, edit, delete, ownership query), Cards (search + detail), and **Imports** (async background CSV import pipeline) are functional.
 
 Base URL:
 
@@ -566,6 +566,131 @@ DELETE /api/decklists/{id}
 
 ---
 
+### Imports
+
+Manabox CSV imports are processed **asynchronously** as background jobs. The client submits the file,
+receives a job ID, then polls for progress until the job reaches a terminal state.
+
+#### Submit Manabox CSV Import
+
+**Endpoint:** `POST /api/imports/manabox`
+
+**Authorization:** Required (Bearer token)
+
+**Content-Type:** `multipart/form-data`
+
+**Request fields:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `file` | File (.csv) | Yes | Manabox CSV export. Maximum 50 MB. |
+| `mode` | string | Yes | `Accumulate` or `Replace`. See below. |
+| `includedBinders` | JSON string | No | JSON array of binder names to import. Omit to import all. |
+
+**Import modes:**
+
+- `Accumulate` — Add imported quantities on top of existing Paper collection (ON CONFLICT DO UPDATE)
+- `Replace` — Delete **all** existing Paper entries first, then insert fresh
+
+**Example:**
+
+```http
+POST /api/imports/manabox
+Content-Type: multipart/form-data
+
+file=<csv bytes>
+mode=Accumulate
+includedBinders=["Main Deck","Sideboard"]
+```
+
+**Success Response (202 Accepted):**
+
+```json
+{
+  "jobId": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+  "statusUrl": "/api/imports/a1b2c3d4-5678-90ab-cdef-1234567890ab/status"
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request` — File missing, empty, not a .csv, or invalid mode
+- `401 Unauthorized` — Missing or invalid token
+
+---
+
+#### Poll Import Job Status
+
+**Endpoint:** `GET /api/imports/{jobId}/status`
+
+**Authorization:** Required (Bearer token)
+
+**Response while processing (200 OK):**
+
+```json
+{
+  "jobId": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+  "status": "Processing",
+  "progress": 45
+}
+```
+
+**Response when completed (200 OK):**
+
+```json
+{
+  "jobId": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+  "status": "Completed",
+  "progress": 100,
+  "result": {
+    "imported": 4103,
+    "updated": 0,
+    "totalCopies": 8704,
+    "skipped": 12,
+    "skippedCards": ["Ragavan, Nimble Pilferer"]
+  }
+}
+```
+
+**Result fields:**
+
+| Field | Description |
+|---|---|
+| `imported` | Unique card entries newly created (distinct ScryfallId slots) |
+| `updated` | Existing entries whose quantities were incremented (Accumulate mode only) |
+| `totalCopies` | Physical cards added: sum of `Quantity + FoilQuantity` across all matched rows |
+| `skipped` | Rows whose ScryfallId was not found in the local card database |
+| `skippedCards` | Names of skipped cards (run ScryfallSync to pull missing cards) |
+
+**Response when failed (200 OK):**
+
+```json
+{
+  "jobId": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+  "status": "Failed",
+  "progress": 30,
+  "error": "No header record was found."
+}
+```
+
+**Job status values:**
+
+| Status | Description |
+|---|---|
+| `Pending` | Accepted, waiting to be picked up by the worker |
+| `Processing` | Worker is actively processing rows (check `progress`) |
+| `Completed` | All rows processed; `result` is populated |
+| `Failed` | Unrecoverable error; `error` contains the message |
+
+**Notes:**
+
+- Returns `404 Not Found` if the jobId belongs to a different user
+- Recommended polling interval: 2 seconds
+- The job record is retained indefinitely for audit purposes
+- `CsvBytes` are cleared from the database once the job completes (storage reclaim)
+
+---
+
 ### Health Check
 
 #### Health Status
@@ -624,6 +749,6 @@ When the API is running locally, Swagger UI is available at:
 
 ---
 
-**Last Updated:** February 28, 2026
+**Last Updated:** March 5, 2026
 **API Version:** v1
-**Next Update:** Phase 4 (Import/export, Azure deployment)
+**Next Update:** Phase 4 (Collection search, Azure deployment)

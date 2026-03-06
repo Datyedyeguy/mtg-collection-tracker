@@ -3,6 +3,7 @@ using System;
 using MTGCollectionTracker.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MTGCollectionTracker.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260303035812_AddUniqueConstraintCollectionEntry")]
+    partial class AddUniqueConstraintCollectionEntry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -262,77 +265,6 @@ namespace MTGCollectionTracker.Data.Migrations
                     b.ToTable("CollectionEntries");
                 });
 
-            modelBuilder.Entity("MTGCollectionTracker.Data.Entities.ImportJob", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<byte[]>("CsvBytes")
-                        .IsRequired()
-                        .HasColumnType("bytea");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Imported")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("IncludedBindersJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Mode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Progress")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Skipped")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SkippedCardsJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("TotalCopies")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Updated")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("UserId", "Status");
-
-                    b.ToTable("ImportJobs");
-                });
-
             modelBuilder.Entity("MTGCollectionTracker.Data.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -526,17 +458,6 @@ namespace MTGCollectionTracker.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Card");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("MTGCollectionTracker.Data.Entities.ImportJob", b =>
-                {
-                    b.HasOne("MTGCollectionTracker.Data.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("User");
                 });

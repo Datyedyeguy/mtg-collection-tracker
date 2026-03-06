@@ -1,0 +1,406 @@
+@page "/import/manabox"
+@attribute [Authorize]
+@implements IDisposable
+@inject ICollectionService CollectionService
+@using CsvHelper
+@using CsvHelper.Configuration
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using MTGCollectionTracker.Shared.DTOs.Collections
+@using System.Globalization
+@using System.IO
+
+<PageTitle>Import from Manabox - MTG Collection Tracker</PageTitle>
+
+<div class="container mt-4" style="max-width: 800px;">
+    <h2>Import from Manabox</h2>
+    <p class="text-muted">
+        Upload a Manabox CSV export to add cards to your Paper collection.
+        Export from <strong>Manabox &rarr; Settings &rarr; Export</strong>.
+    </p>
+
+    @if (result != null)
+    {
+        <div class="alert @(result.Imported + result.Updated > 0 ? "alert-success" : "alert-warning") mb-4" role="alert">
+            <h5 class="alert-heading">Import complete</h5>
+            <div class="row text-center mt-2 mb-2">
+                <div class="col">
+                    <div class="fs-4 fw-bold text-success">@result.Imported</div>
+                    <div class="text-muted small">Unique cards</div>
+                </div>
+                <div class="col">
+                    <div class="fs-4 fw-bold text-primary">@result.Updated</div>
+                    <div class="text-muted small">Updated</div>
+                </div>
+                <div class="col">
+                    <div class="fs-4 fw-bold text-info">@result.TotalCopies</div>
+                    <div class="text-muted small">Total copies</div>
+                </div>
+                <div class="col">
+                    <div class="fs-4 fw-bold @(result.Skipped > 0 ? "text-warning" : "text-muted")">@result.Skipped</div>
+                    <div class="text-muted small">Skipped</div>
+                </div>
+            </div>
+            @if (result.SkippedCards.Count > 0)
+            {
+                <hr />
+                <details>
+                    <summary class="fw-semibold">
+                        @result.SkippedCards.Count card(s) not found in local database — click to expand
+                    </summary>
+                    <ul class="mt-2 mb-0 small">
+                        @foreach (var name in result.SkippedCards)
+                        {
+                            <li>@name</li>
+                        }
+                    </ul>
+                </details>
+                <p class="mt-2 mb-0 small text-muted">
+                    These Scryfall IDs are not in your local card database. Run <code>ScryfallSync</code> to
+                    pull the latest card data, then re-import.
+                </p>
+            }
+        </div>
+        <button class="btn btn-secondary mb-4" @onclick="ResetForm">Import another file</button>
+    }
+    else
+    {
+        @if (step == Step.PickFile)
+        {
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Step 1 &mdash; Select Manabox export (.csv)</h5>
+                    <div class="mb-3">
+                        <InputFile OnChange="OnFileSelectedAsync" accept=".csv" class="form-control" disabled="@isParsing" />
+                        <div class="form-text">Maximum file size: 50 MB</div>
+                    </div>
+                    @if (isParsing)
+                    {
+                        <div class="text-muted">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            Reading file&hellip;
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(parseError))
+                    {
+                        <div class="alert alert-danger mt-2">@parseError</div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (step == Step.ConfigureImport)
+        {
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Step 2 &mdash; Configure import</h5>
+                    <p class="text-muted small">File: <strong>@selectedFileName</strong></p>
+
+                    @if (!string.IsNullOrEmpty(importError))
+                    {
+                        <div class="alert alert-danger">@importError</div>
+                    }
+
+                    <h6 class="mt-3">Binders to import</h6>
+                    <p class="text-muted small">All binders are selected by default. Uncheck any you want to skip.</p>
+
+                    @foreach (var group in binders.GroupBy(b => b.BinderType).OrderBy(g => g.Key))
+                    {
+                        <div class="mb-3">
+                            <div class="fw-semibold text-capitalize mb-1 text-secondary">@group.Key</div>
+                            @foreach (var binder in group)
+                            {
+                                var binderId = $"binder_{binder.Name.GetHashCode():X}";
+                                <div class="form-check ms-2">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="@binderId"
+                                           checked="@binder.Selected"
+                                           @onchange="e => binder.Selected = (bool)(e.Value ?? false)" />
+                                    <label class="form-check-label" for="@binderId">
+                                        @binder.Name
+                                        <span class="text-muted small">(@binder.CardCount cards)</span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <hr />
+                    <h6>Import mode</h6>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" id="modeAccumulate" name="importMode"
+                               checked="@(importMode == ImportMode.Accumulate)"
+                               @onchange="_ => importMode = ImportMode.Accumulate" />
+                        <label class="form-check-label" for="modeAccumulate">
+                            <strong>Accumulate</strong> &mdash; add imported quantities on top of your existing collection
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" id="modeReplace" name="importMode"
+                               checked="@(importMode == ImportMode.Replace)"
+                               @onchange="_ => importMode = ImportMode.Replace" />
+                        <label class="form-check-label" for="modeReplace">
+                            <strong>Replace</strong> &mdash; delete <em>all</em> current Paper cards, then import fresh
+                        </label>
+                    </div>
+
+                    @if (importMode == ImportMode.Replace)
+                    {
+                        <div class="alert alert-warning mt-2" role="alert">
+                            <strong>&#9888;&#65039; Warning:</strong> This will permanently delete <strong>all</strong>
+                            your Paper collection entries before importing. This cannot be undone.
+                        </div>
+                    }
+
+                    <hr />
+
+                    <p class="text-muted mb-3">
+                        <strong>@SelectedCardCount</strong> card(s) across
+                        <strong>@binders.Count(b => b.Selected)</strong> binder(s) selected
+                    </p>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" @onclick="StartImportAsync"
+                                disabled="@(isImporting || !binders.Any(b => b.Selected))">
+                            @if (isImporting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                <span>Importing&hellip;</span>
+                            }
+                            else
+                            {
+                                <span>Import</span>
+                            }
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="ResetForm" disabled="@isImporting">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private enum Step { PickFile, ConfigureImport, Polling }
+
+    private sealed class BinderInfo
+    {
+        public string Name { get; set; } = string.Empty;
+        public string BinderType { get; set; } = string.Empty;
+        public int CardCount { get; set; }
+        public bool Selected { get; set; } = true;
+    }
+
+    private const long MaxFileSizeBytes = 52_428_800; // 50 MB
+
+    private Step step = Step.PickFile;
+    private bool isParsing;
+    private bool isImporting;
+    private string? parseError;
+    private string? importError;
+    private string? selectedFileName;
+    private byte[]? fileBytes;
+    private List<BinderInfo> binders = [];
+    private ImportMode importMode = ImportMode.Accumulate;
+    private ManaboxImportResultDto? result;
+
+    // Polling state
+    private Guid? _pendingJobId;
+    private ImportJobStatusDto? _jobStatus;
+    private System.Threading.Timer? _pollTimer;
+
+    private int SelectedCardCount => binders.Where(b => b.Selected).Sum(b => b.CardCount);
+
+    private async Task OnFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        parseError = null;
+        isParsing = true;
+        StateHasChanged();
+
+        try
+        {
+            if (file.Size > MaxFileSizeBytes)
+            {
+                parseError = $"File is too large ({file.Size / 1_048_576.0:N1} MB). Maximum allowed size is 50 MB.";
+                return;
+            }
+
+            // Buffer the file once so we can parse client-side AND re-use the bytes for the POST
+            await using var stream = file.OpenReadStream(MaxFileSizeBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            fileBytes = buffer.ToArray();
+            selectedFileName = file.Name;
+
+            binders = await ExtractBindersAsync(fileBytes);
+
+            if (binders.Count == 0)
+            {
+                parseError = "No binders found. Make sure this is a Manabox CSV export that contains a 'Binder Name' column.";
+                return;
+            }
+
+            step = Step.ConfigureImport;
+        }
+        catch (Exception ex)
+        {
+            parseError = $"Failed to read file: {ex.Message}";
+        }
+        finally
+        {
+            isParsing = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Parses the CSV in-browser to extract unique binder names, types, and card counts.
+    /// No API call is made here; this is pure client-side for the Step 1 preview.
+    /// </summary>
+    private static async Task<List<BinderInfo>> ExtractBindersAsync(byte[] bytes)
+    {
+        var binderMap = new Dictionary<string, BinderInfo>(StringComparer.OrdinalIgnoreCase);
+
+        var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+            MissingFieldFound = null,
+            BadDataFound = null
+        };
+
+        using var ms = new MemoryStream(bytes);
+        using var reader = new StreamReader(ms);
+        using var csv = new CsvReader(reader, csvConfig);
+
+        await csv.ReadAsync();
+        csv.ReadHeader();
+
+        while (await csv.ReadAsync())
+        {
+            var binderName = csv.GetField("Binder Name") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(binderName))
+                continue;
+
+            var binderType = csv.GetField("Binder Type") ?? "binder";
+            _ = int.TryParse(csv.GetField("Quantity") ?? "1", out var qty);
+            if (qty <= 0) qty = 1;
+
+            if (binderMap.TryGetValue(binderName, out var existing))
+            {
+                existing.CardCount += qty;
+            }
+            else
+            {
+                binderMap[binderName] = new BinderInfo
+                {
+                    Name = binderName,
+                    BinderType = binderType,
+                    CardCount = qty,
+                    Selected = true
+                };
+            }
+        }
+
+        return [.. binderMap.Values.OrderBy(b => b.BinderType).ThenBy(b => b.Name)];
+    }
+
+    private async Task StartImportAsync()
+    {
+        importError = null;
+        isImporting = true;
+        StateHasChanged();
+
+        try
+        {
+            var selectedBinders = binders
+                .Where(b => b.Selected)
+                .Select(b => b.Name)
+                .ToList();
+
+            using var ms = new MemoryStream(fileBytes!);
+            var (accepted, error) = await CollectionService.SubmitManaboxImportAsync(
+                ms, selectedFileName!, selectedBinders, importMode);
+
+            if (error != null)
+            {
+                importError = error;
+                return;
+            }
+
+            _pendingJobId = accepted!.JobId;
+            step = Step.Polling;
+
+            // Poll every 2 seconds; the callback marshals back to the Blazor sync context
+            _pollTimer = new System.Threading.Timer(
+                _ => InvokeAsync(PollStatusAsync),
+                null,
+                dueTime: TimeSpan.Zero,
+                period: TimeSpan.FromSeconds(2));
+        }
+        finally
+        {
+            isImporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PollStatusAsync()
+    {
+        if (_pendingJobId is null) return;
+
+        var (status, error) = await CollectionService.GetImportStatusAsync(_pendingJobId.Value);
+
+        if (error != null)
+        {
+            // Transient network error — keep polling, show nothing yet
+            return;
+        }
+
+        _jobStatus = status;
+
+        if (status?.Status is "Completed" or "Failed")
+        {
+            _pollTimer?.Dispose();
+            _pollTimer = null;
+
+            if (status.Status == "Completed")
+            {
+                result = status.Result;
+                step = Step.PickFile; // re-use the result display block (result != null guards it)
+            }
+            else
+            {
+                importError = status.Error ?? "Import failed with an unknown error.";
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private void ResetForm()
+    {
+        _pollTimer?.Dispose();
+        _pollTimer = null;
+        step = Step.PickFile;
+        isParsing = false;
+        isImporting = false;
+        parseError = null;
+        importError = null;
+        selectedFileName = null;
+        fileBytes = null;
+        binders = [];
+        importMode = ImportMode.Accumulate;
+        result = null;
+        _pendingJobId = null;
+        _jobStatus = null;
+    }
+
+    public void Dispose()
+    {
+        _pollTimer?.Dispose();
+    }
+}

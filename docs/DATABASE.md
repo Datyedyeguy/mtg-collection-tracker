@@ -14,6 +14,7 @@ This document describes the database schema for the MTG Collection Tracker appli
 erDiagram
     AspNetUsers ||--o{ RefreshTokens : "has many"
     AspNetUsers ||--o{ CollectionEntries : "owns"
+    AspNetUsers ||--o{ ImportJobs : "submits"
     Cards ||--o{ CollectionEntries : "appears in"
 
     AspNetUsers {
@@ -375,6 +376,43 @@ Planned columns: id, user_id, platform, import_type, source, cards_added,
 cards_removed, cards_updated, file_name, imported_at
 ```
 
+> **Note**: The `ImportJobs` table (implemented in Phase 3) serves this purpose for
+> Manabox CSV imports. A separate `ImportHistory` summary table may still be added
+> when additional import sources (MTG Online, Archidekt) are supported.
+
+### ImportJobs
+
+Background import job tracking for asynchronous CSV processing.
+One row per import submission; persisted before the job is enqueued to survive restarts.
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `Id` | uuid | NO | Primary key. Returned to client as the job token. |
+| `UserId` | text | NO | FK → `AspNetUsers.Id`. Ownership check on status poll. |
+| `Status` | text | NO | `Pending`, `Processing`, `Completed`, or `Failed`. |
+| `Progress` | integer | NO | 0–100. Updated after each 1,000-row batch. |
+| `FileName` | text | NO | Original uploaded file name (display only). |
+| `Mode` | text | NO | `Accumulate` or `Replace`. |
+| `IncludedBindersJson` | text | NO | JSON array of binder names selected by user. |
+| `CsvBytes` | bytea | NO | Raw CSV file. Cleared to `[]` after processing. Max 50 MB. |
+| `Imported` | integer | NO | New collection entry slots created. |
+| `Updated` | integer | NO | Existing entries whose quantities were incremented. |
+| `Skipped` | integer | NO | Rows skipped (ScryfallId not in local Cards table). |
+| `TotalCopies` | integer | NO | Physical cards added: sum of Quantity + FoilQuantity. |
+| `SkippedCardsJson` | text | NO | JSON array of skipped card names. |
+| `ErrorMessage` | text | YES | Set when Status = Failed. |
+| `CreatedAt` | timestamptz | NO | When the job was submitted. |
+| `UpdatedAt` | timestamptz | NO | Last status/progress change. |
+
+**Indexes:**
+
+- `IX_ImportJobs_Status` — Worker startup re-scan for Pending/Processing jobs
+- `IX_ImportJobs_UserId_Status` — Status-poll endpoint (user sees only their own jobs)
+
+**FK Constraints:**
+
+- `UserId` → `AspNetUsers.Id` CASCADE DELETE
+
 ---
 
 ## Migration History
@@ -389,6 +427,10 @@ cards_removed, cards_updated, file_name, imported_at
 | `AddFinishesTracking`              | 2026-02-16 | Add Finishes column to Cards, FoilQuantity and EtchedQuantity to CollectionEntries           |
 | `SnapshotSync`                     | 2026-02-22 | Fix EF snapshot drift — added USING clause for text-to-jsonb casts on Faces/Finishes columns |
 | `AddCardFlavorName`                | 2026-02-22 | Add FlavorName (nullable text) to Cards for showcase/crossover/Universe Beyond printings     |
+
+| `AddUniqueConstraintCollectionEntry`  | 2026-03-04 | Unique index on (UserId, CardId, Platform) — required for UNNEST ON CONFLICT upsert |
+| `AddImportJobTable`                   | 2026-03-04 | ImportJobs table for async background import pipeline |
+| `AddImportJobTotalCopies`             | 2026-03-05 | Add TotalCopies column to ImportJobs (physical card count inc. foils) |
 
 ---
 
@@ -470,5 +512,5 @@ LIMIT 50 OFFSET 0;
 
 ---
 
-**Last Updated**: February 22, 2026
-**Next Update**: When Decklists/ImportHistory tables are added (Phase 4-6)
+**Last Updated**: March 5, 2026
+**Next Update**: When Decklists tables are added (Phase 6)

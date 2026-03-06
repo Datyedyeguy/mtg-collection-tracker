@@ -161,11 +161,11 @@
     - [ ] Add cards to collection (needs card search first)
     - [ ] Edit card quantities
     - [ ] Remove cards from collection
-    - [ ] Card search and filtering (needs Scryfall data)
-    - [ ] Import from CSV/Moxfield/Manabox
+    - [ ] **Search/filter within your collection** — filter owned cards by name, set, color, type, platform (distinct from `/api/cards` global card search)
+    - [x] Import from Manabox CSV ✅ (Mar 5, 2026)
+    - [ ] Import from Moxfield/other CSV formats
     - [ ] Export to various formats
   - [x] Card count display (unique cards vs total copies)
-  - [ ] Card search and filtering (Phase 3 - needs Scryfall data)
 - [x] **Local development setup** ✅
   - [x] Docker Compose for PostgreSQL (local dev database)
   - [x] Connection string configuration
@@ -244,16 +244,16 @@
   - [x] Remove card from collection (DELETE /api/collections/{id}) ✅ (Feb 28, 2026) — hard delete with inline confirmation on collection page; returns 404 for other users' entries (no existence leakage); 16 new tests
   - [x] Display card images in collection view ✅ (Feb 26, 2026) — hover over a card name to see the card art; card names are clickable links to the card detail page
   - [ ] Card details modal/page
-- [ ] **Import/Export Features**
-  - [ ] Import from Manabox CSV ← **START HERE** (design documented below)
+- [x] **Import/Export Features (Manabox)**
+  - [x] Import from Manabox CSV ✅ (Mar 5, 2026) — async background job pipeline, binder filtering, Accumulate/Replace modes, real-time progress polling
   - [ ] Import from Moxfield CSV
   - [ ] Import from generic CSV format
   - [ ] Export collection to CSV
   - [ ] Validation and error reporting for imports
 
-  **Manabox Import — Design (Mar 1, 2026)**
+  **Manabox Import — Implementation Notes (Mar 5, 2026)**
 
-  CSV format (confirmed from real export, 5,257 rows):
+  CSV format (confirmed from real export, 7,835 rows → 8,704 physical cards):
   ```
   Binder Name,Binder Type,Name,Set code,Set name,Collector number,Foil,Rarity,
   Quantity,ManaBox ID,Scryfall ID,Purchase price,Misprint,Altered,Condition,Language,Purchase price currency
@@ -262,47 +262,30 @@
   - `Scryfall ID` → look up `Card` in our DB by `ScryfallId` (primary match key)
   - `Foil = normal` → `Quantity`; `Foil = foil` → `FoilQuantity`
   - All Manabox cards are implicitly **Paper** platform
-  - `Binder Type` values in this export: `binder` (4,568), `deck` (406), `list` (283)
-  - `Binder Name` is user-defined; `list` type is not necessarily a wishlist — it's just
-    another user-created grouping (e.g. "To Buy" happened to be a list, but the format
-    gives no authoritative owned-vs-wanted signal)
+  - `Binder Type` values: `binder`, `deck`, `list` (all treated as owned)
+  - `Binder Name` is user-defined; no authoritative owned-vs-wanted signal in format
 
-  **Two-step import UI** (don't bake in assumptions — let the user decide):
-
-  Step 1 — File selected, parse header + binder names client-side in Blazor, show options:
-  - Checkbox list of binder names from *their* file, grouped by binder type, all checked by default
-  - Radio: "Add to existing quantities" (Accumulate) vs "Replace existing quantities" (Replace)
-  - Summary: "X cards across Y binders selected"
-
-  Step 2 — Confirm → POST to API with file + chosen options.
-
-  DTOs:
-  ```csharp
-  // Sent as multipart/form-data
-  // File: IFormFile
-  // IncludedBinders: List<string> (binder names to include)
-  // Mode: ImportMode enum
-
-  public enum ImportMode { Accumulate, Replace }
-
-  public record ManaboxImportResultDto
-  {
-      public int Imported { get; init; }      // new entries created
-      public int Updated { get; init; }       // existing entries modified
-      public int Skipped { get; init; }       // Scryfall ID not in our card DB
-      public List<string> SkippedCards { get; init; }  // names for user feedback
-  }
-  ```
-
-  Endpoint: `POST /api/collections/import/manabox`
-  - Use `CsvHelper` NuGet package (handles quoted commas in card names)
-  - Bulk-lookup cards by ScryfallId in a single DB query (not per-row)
-  - Wrap all inserts/updates in a single transaction
+  **What was built** (async pipeline, not the original synchronous design):
+  - POST `api/imports/manabox` → 202 Accepted + jobId
+  - `Channel<Guid>` + `ImportWorkerService` (BackgroundService) processes in background
+  - GET `api/imports/{jobId}/status` → progress polling (0–100), client polls every 2s
+  - UNNEST batch upsert (1,000-row batches) — 7,835 rows processed in ~3 seconds
+  - Result stats: `Imported` (unique slots), `Updated`, `TotalCopies` (Qty+FoilQty), `Skipped`
+  - Job survives server restart (row persisted before enqueue; startup re-scan resets stale jobs)
+  - See ADR-021 for architecture rationale and known multi-node limitation
 
 **Nice to Have (Defer to Later):**
 
 - Consider: URL versioning vs header versioning vs query string
 - Note: ApiRoutes.cs structure already supports easy migration to versioned routes
+
+- [ ] **Background job system improvements** (post-MVP, when scale demands it)
+  - [ ] Richer status messages: "Parsing CSV..." / "Upserting batch 3 of 8..." / "Clearing storage..." (currently just 0–100 integer)
+  - [ ] Import history page — list past imports with date, file name, result counts
+  - [ ] Retry on failure — currently a Failed job requires re-upload; add a retry button that re-enqueues the same job
+  - [ ] Multi-node safety — replace `Channel<Guid>` + startup re-scan with `SELECT ... FOR UPDATE SKIP LOCKED` polling (see ADR-021)
+  - [ ] Move CSV bytes to Azure Blob Storage instead of PostgreSQL `bytea` (cleaner at scale)
+  - [ ] Structured logging via `ILogger<ImportWorkerService>` at batch start/end, skipped cards
 
 **Technical Debt / Warnings:**
 
