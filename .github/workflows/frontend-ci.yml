@@ -112,3 +112,4 @@ jobs:
           app_location: "/"
           output_location: "publish/wwwroot"
           skip_app_build: true # We build with dotnet publish above
+          skip_deploy_on_missing_secrets: true # No-op until infra deploy sets the token
