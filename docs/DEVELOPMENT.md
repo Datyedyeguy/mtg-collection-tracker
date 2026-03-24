@@ -6,7 +6,8 @@
 
 - .NET 10 SDK
 - Docker Desktop (for PostgreSQL)
-- Azure CLI (for deployments - optional for local dev)
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) — required for deployments
+- [GitHub CLI (`gh`)](https://cli.github.com/) — required for the bootstrap script
 - Git
 
 ## Quick Start
@@ -180,6 +181,84 @@ netstat -ano | findstr :5432
 docker compose down
 docker compose up -d
 ```
+
+## Azure Deployment
+
+All Azure infrastructure is managed through GitHub Actions and a one-time bootstrap script. **No manual portal steps are needed after the first bootstrap.**
+
+### Prerequisites
+
+1. Log in to both CLIs:
+
+   ```powershell
+   az login
+   gh auth login
+   ```
+
+2. Ensure you have an active Azure subscription and the target resource group or permissions to create one.
+
+### First-Time Bootstrap
+
+Run the bootstrap script once to create the Azure App Registration, OIDC federated credentials, and populate GitHub secrets:
+
+```powershell
+.\scripts\bootstrap-azure.ps1
+```
+
+Optional parameters (defaults shown):
+
+```powershell
+.\scripts\bootstrap-azure.ps1 `
+    -ResourceGroup "mtg-tracker-rg" `
+    -Location     "eastus2" `
+    -AppName      "mtg-collection-tracker"
+```
+
+The script will:
+
+- Create the resource group
+- Create an Azure App Registration with OIDC federated credentials for GitHub Actions
+- Assign the `Contributor` role on the resource group
+- Set `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, and `AZURE_STATIC_WEB_APPS_API_TOKEN` as GitHub secrets
+
+### Required GitHub Secrets (Manual)
+
+After the bootstrap, add these secrets manually in your GitHub repo settings (Settings → Secrets → Actions):
+
+| Secret                 | Description                                         |
+| ---------------------- | --------------------------------------------------- |
+| `DB_ADMIN_PASSWORD`    | PostgreSQL administrator password (16+ chars)       |
+| `JWT_SECRET`           | JWT signing key for the API (32+ chars)             |
+| `DB_CONNECTION_STRING` | Full PostgreSQL connection string for EF migrations |
+
+### Deploy Infrastructure
+
+Trigger the infrastructure workflow manually from GitHub Actions:
+
+```
+GitHub → Actions → Infrastructure CI → Run workflow → Branch: main
+```
+
+Or push a change under `infrastructure/**`. The workflow will:
+
+1. **Validate** — lint the Bicep files
+2. **What-If** — preview changes (runs on PRs)
+3. **Deploy** — apply to Azure (requires `production` environment approval)
+
+After the first successful deploy, update the frontend production config with the real API hostname:
+
+```json
+// src/frontend/MTGCollectionTracker.Client/wwwroot/appsettings.Production.json
+{
+  "ApiBaseUrl": "https://<your-api-hostname>.azurewebsites.net"
+}
+```
+
+### Subsequent Deployments
+
+- **Backend**: Merge to `main` — `backend-ci.yml` builds, runs migrations, and deploys automatically
+- **Frontend**: Merge to `main` — `frontend-ci.yml` builds and deploys automatically
+- **Infrastructure changes**: Merge `infrastructure/**` changes to `main`
 
 ## Next Steps
 

@@ -1,0 +1,180 @@
+# Infrastructure CI Pipeline
+# Validates and deploys Azure infrastructure via Bicep templates.
+#
+# Triggers:
+#   - Manual via workflow_dispatch (primary deployment mechanism)
+#   - Push to main when infrastructure files change (validation only on PRs,
+#     deploy only on push to main)
+#   - Pull requests — runs validate + what-if so reviewers see planned changes
+#
+# Required GitHub secrets (set by scripts/bootstrap-azure.ps1):
+#   AZURE_CLIENT_ID       — App Registration client ID
+#   AZURE_TENANT_ID       — Entra tenant ID
+#   AZURE_SUBSCRIPTION_ID — Azure subscription ID
+#   AZURE_RESOURCE_GROUP  — Target resource group (e.g. mtg-tracker-rg)
+#
+# Required GitHub secrets (set manually after first bootstrap):
+#   DB_ADMIN_PASSWORD     — PostgreSQL admin password (16+ chars)
+#   JWT_SECRET            — JWT signing secret (32+ chars)
+
+name: Infrastructure CI
+
+permissions:
+  contents: read
+  id-token: write # Required for OIDC authentication to Azure
+
+concurrency:
+  group: infrastructure-${{ github.ref }}
+  cancel-in-progress: false # Never cancel in-progress infra deployments
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "prod"
+        type: choice
+        options: [prod]
+  push:
+    branches: [main]
+    paths:
+      - "infrastructure/**"
+      - ".github/workflows/infrastructure-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "infrastructure/**"
+      - ".github/workflows/infrastructure-ci.yml"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Validate — always runs (PRs and push)
+  # ---------------------------------------------------------------------------
+  validate:
+    name: Validate Bicep
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # az CLI comes pre-installed on ubuntu-latest, but the Bicep extension
+      # must be explicitly installed. This is fast (~2s) and idempotent.
+      - name: Install Bicep CLI
+        run: az bicep install
+
+      # Build (lint) all Bicep files — catches syntax errors and type mismatches
+      - name: Bicep build (lint)
+        run: az bicep build --file infrastructure/main.bicep
+
+      # Validate the template against Azure's ARM API — catches resource
+      # configuration errors without making any changes
+      - name: Validate template
+        run: |
+          az deployment group validate \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --template-file  infrastructure/main.bicep \
+            --parameters     infrastructure/parameters/prod.bicepparam \
+            --parameters     dbAdminPassword='placeholder-for-validation' \
+                             jwtSecret='placeholder-32-chars-for-validation!!' \
+                             alertEmail='placeholder@example.com'
+
+  # ---------------------------------------------------------------------------
+  # Job 2: What-if — runs on PRs to show planned changes to reviewers
+  # ---------------------------------------------------------------------------
+  whatif:
+    name: What-If Preview
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Bicep CLI
+        run: az bicep install
+
+      - name: What-if (preview changes)
+        run: |
+          az deployment group what-if \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --template-file  infrastructure/main.bicep \
+            --parameters     infrastructure/parameters/prod.bicepparam \
+            --parameters     dbAdminPassword='placeholder-for-whatif' \
+                             jwtSecret='placeholder-32-chars-for-whatif!!!!!!' \
+                             alertEmail='placeholder@example.com'
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Deploy — only on push to main or manual trigger
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    environment: production # Requires manual approval in GitHub Environments settings
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Bicep CLI
+        run: az bicep install
+
+      - name: Deploy Bicep templates
+        id: deploy
+        run: |
+          az deployment group create \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --template-file  infrastructure/main.bicep \
+            --parameters     infrastructure/parameters/prod.bicepparam \
+            --parameters     dbAdminPassword='${{ secrets.DB_ADMIN_PASSWORD }}' \
+                             jwtSecret='${{ secrets.JWT_SECRET }}' \
+                             alertEmail='${{ secrets.ALERT_EMAIL }}' \
+            --query          "properties.outputs" \
+            --output         json \
+          | tee deployment-outputs.json
+
+      # Expose the Static Web App deployment token as a repo secret so the
+      # frontend workflow can use it without manual portal steps.
+      # The token value is a Bicep @secure() output — it appears masked in logs.
+      - name: Update SWA deployment token secret
+        run: |
+          SWA_TOKEN=$(cat deployment-outputs.json | jq -r '.staticWebAppDeploymentToken.value')
+          gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --body "$SWA_TOKEN"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Print the live URLs so they're easy to find in the workflow run log
+      - name: Print deployment outputs
+        run: |
+          API_URL=$(cat deployment-outputs.json | jq -r '.apiHostname.value')
+          SWA_URL=$(cat deployment-outputs.json | jq -r '.staticWebAppHostname.value')
+          echo "### 🚀 Deployment complete" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | URL |"          >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|"                    >> $GITHUB_STEP_SUMMARY
+          echo "| API | https://$API_URL |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | https://$SWA_URL |" >> $GITHUB_STEP_SUMMARY

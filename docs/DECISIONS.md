@@ -27,6 +27,7 @@ Each decision is documented in a separate file following this structure:
 - [ADR-017: Testing Libraries (MSTest, NSubstitute, Shouldly)](decisions/ADR-017-testing-libraries.md)
 - [ADR-019: Shared API Route Constants](decisions/ADR-019-shared-api-routes.md)
 - [ADR-021: Background Job Pipeline for CSV Imports](decisions/ADR-021-background-job-import-pipeline.md)
+- [ADR-022: Serilog for Structured Logging](decisions/ADR-022-serilog-structured-logging.md)
 
 ### Pending Decisions
 
@@ -50,6 +51,7 @@ Each decision is documented in a separate file following this structure:
 - [ADR-008: Bicep over Terraform for Infrastructure](decisions/ADR-008-bicep-infrastructure.md)
 - [ADR-013: GitHub Actions for CI/CD](decisions/ADR-013-github-actions-cicd.md)
 - [ADR-014: Cost Alerts at 50%, 83%, 100%](decisions/ADR-014-cost-alerts-monitoring.md)
+- [ADR-023: OIDC Federated Credentials for GitHub Actions](decisions/ADR-023-oidc-federated-credentials.md)
 
 ### Data & External Services
 

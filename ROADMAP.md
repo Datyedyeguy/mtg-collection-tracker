@@ -1,7 +1,7 @@
 # MTG Collection Tracker - Roadmap
 
-**Last Updated**: February 28, 2026
-**Current Phase**: Phase 3 - Scryfall Integration & Card Management (Collection CRUD Complete)
+**Last Updated**: March 24, 2026
+**Current Phase**: Phase 4 - Azure Deployment & CI/CD
 
 ---
 
@@ -254,10 +254,12 @@
   **Manabox Import — Implementation Notes (Mar 5, 2026)**
 
   CSV format (confirmed from real export, 7,835 rows → 8,704 physical cards):
+
   ```
   Binder Name,Binder Type,Name,Set code,Set name,Collector number,Foil,Rarity,
   Quantity,ManaBox ID,Scryfall ID,Purchase price,Misprint,Altered,Condition,Language,Purchase price currency
   ```
+
   Key mappings:
   - `Scryfall ID` → look up `Card` in our DB by `ScryfallId` (primary match key)
   - `Foil = normal` → `Quantity`; `Foil = foil` → `FoilQuantity`
@@ -384,62 +386,57 @@ CAST(regexp_replace(collector_number, '\D', '', 'g') AS int)`). Affects the "All
 
 ### Phase 4: Azure Deployment & CI/CD
 
-**Pre-Deployment Research:**
+**Status**: 🚧 In Progress (March 24, 2026)
 
-- [ ] **Research pricing strategy and sources**
-  - [ ] Evaluate pricing sources: TCGPlayer, CardKingdom, Scryfall bulk data
-  - [ ] Understand pricing per finish: usd, usd_foil, usd_etched
-  - [ ] Update frequency requirements (daily? on-demand?)
-  - [ ] Historical pricing data needs (price trends/charts?)
-  - [ ] Consider card condition pricing (NM, LP, MP, HP) if applicable
-  - [ ] Decide: Add Prices field to Card entity or separate PriceHistory table?
+**Bootstrap (one-time, run locally):**
+
+- [ ] Run `.\scripts\bootstrap-azure.ps1` after `az login` + `gh auth login`
+  - [x] Script written ✅ — creates resource group, App Registration, OIDC federated
+        credentials, Contributor role assignment, and GitHub secrets automatically
+- [ ] Add two additional GitHub secrets manually (sensitive — never in code):
+  - [ ] `DB_ADMIN_PASSWORD` — PostgreSQL admin password (16+ chars)
+  - [ ] `JWT_SECRET` — JWT signing key (32+ chars)
+  - [ ] `DB_CONNECTION_STRING` — Npgsql connection string (for EF migrations in CI)
+  - [ ] `AZURE_API_APP_NAME` — populated after first infra deploy (from workflow output)
 
 **Infrastructure as Code:**
 
-- [ ] Write Bicep templates
-  - [ ] main.bicep (entry point)
-  - [ ] modules/database.bicep (PostgreSQL Flexible Server)
-  - [ ] modules/web-app.bicep (App Service + Static Web Apps)
-  - [ ] modules/storage.bicep (Blob storage for desktop client)
-  - [ ] modules/monitoring.bicep (Application Insights, cost alerts)
-- [ ] Deploy infrastructure to Azure
-  - [ ] Create resource group
-  - [ ] Deploy dev environment
-  - [ ] Deploy staging environment
-  - [ ] Deploy production environment
-- [ ] Configure GitHub Actions CI/CD
-  - [ ] backend-ci.yml (build, test, deploy API)
-  - [ ] **Run EF migrations before deployment** (`dotnet ef database update` in pipeline)
-  - [ ] frontend-ci.yml (build, deploy Blazor app)
-  - [ ] desktop-ci.yml (build, sign, publish Avalonia client)
-  - [ ] infrastructure-ci.yml (deploy Bicep templates)
-  - [ ] **Code style enforcement** (`dotnet format --verify-no-changes` to enforce EditorConfig rules)
-  - [ ] Consider StyleCop.Analyzers or Roslyn analyzers for additional compile-time checks
-- [ ] Set up cost management
-  - [ ] Budget alerts ($75, $125, $150)
-  - [ ] Cost anomaly detection
-  - [ ] Weekly cost review reminders
-- [ ] **Observability and security monitoring (deployment prerequisite)**
-  - [ ] Enable Application Insights on App Service (request rates, failure rates, latency)
-  - [ ] Configure Serilog structured logging on the backend (JSON output → App Insights sink)
-  - [ ] Set up alerts for elevated 4xx/5xx error rates (could indicate scanning or abuse)
-  - [ ] Set up alerts for unusual request volumes per user (spike in card search calls, etc.)
-  - [ ] Enable App Service access logs — captures IP, user-agent, response times
-  - [ ] Add distributed tracing so slow queries are identifiable end-to-end
-  - [ ] Document runbook: what to do when an alert fires (block IP, revoke token, etc.)
-  - [ ] Consider rate limiting middleware (e.g. AspNetCoreRateLimit) in Phase 5 once patterns are clear
-- [ ] Deploy applications
-  - [ ] Backend API to App Service
-  - [ ] Frontend to Static Web Apps
-  - [ ] Connection string configuration
-  - [ ] Environment variables
+- [x] Write Bicep templates ✅ (Mar 24, 2026)
+  - [x] `infrastructure/main.bicep` (entry point)
+  - [x] `infrastructure/modules/database.bicep` (PostgreSQL Flexible Server B1ms ~$12/mo)
+  - [x] `infrastructure/modules/web-app.bicep` (App Service Linux B1 ~$13/mo + Static Web Apps Free)
+  - [x] `infrastructure/modules/monitoring.bicep` (Application Insights + budget alerts $75/$125/$150)
+  - [x] `infrastructure/parameters/prod.bicepparam`
+  - [ ] `infrastructure/modules/storage.bicep` (Blob storage — deferred to Phase 5/desktop)
+- [ ] Deploy infrastructure to Azure (run infrastructure-ci workflow after bootstrap)
+  - [ ] First deploy — creates all resources, outputs API hostname + SWA token
+  - [ ] Update `src/frontend/.../appsettings.Production.json` with real API hostname
+  - [ ] Verify resources in Azure Portal
 
-**Learning Goals:**
+**CI/CD Workflows:**
 
-- Hands-on with Azure PaaS services
-- GitHub Actions workflow authoring
-- OIDC authentication for Azure
-- Multi-environment deployment strategies
+- [x] `infrastructure-ci.yml` ✅ — validate + what-if on PRs, deploy on main (with approval gate)
+- [x] `backend-ci.yml` updated ✅ — build/test job + deploy job (EF migrations → App Service deploy → health check smoke test)
+- [x] `frontend-ci.yml` updated ✅ — build/test job + deploy job (SWA — PR previews + production)
+- [ ] `desktop-ci.yml` — deferred to Phase 5
+
+**Observability:**
+
+- [x] Serilog structured logging added to API ✅ (Mar 24, 2026)
+  - [x] `Serilog.AspNetCore` + `Serilog.Sinks.ApplicationInsights` installed
+  - [x] Bootstrap logger captures startup errors
+  - [x] `UseSerilogRequestLogging()` middleware for per-request structured logs
+  - [x] `appsettings.Production.json` adds App Insights sink (reads connection string from env var)
+- [x] `UseExceptionHandler()` + `AddProblemDetails()` in place ✅ (Mar 24, 2026)
+- [ ] Verify Application Insights receiving data after first deploy
+- [ ] Set up alert rules (4xx/5xx rate, response time) in Azure Portal
+
+**Remaining (after first successful deploy):**
+
+- [ ] Smoke test the live app end-to-end (register → login → import → view collection)
+- [ ] Update CORS allowed origins once real SWA hostname is known
+- [ ] Review Application Insights live metrics
+- [ ] Tag the first production release in Git
 
 ---
 
