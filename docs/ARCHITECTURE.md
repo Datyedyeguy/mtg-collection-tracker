@@ -46,6 +46,7 @@
 - RESTful Web API (.NET 10)
 - JWT authentication with refresh token rotation
 - EF Core 10 + PostgreSQL
+- **Serilog** structured logging (Console + Application Insights sinks)
 - Hosted on Azure App Service (Linux B1 tier)
 
 ### Desktop Client (Avalonia UI)
@@ -86,26 +87,28 @@
 - **Frontend**: Static Web Apps (Free tier)
 - **Backend**: App Service Linux B1 (~$13/mo)
 - **Database**: PostgreSQL Flexible Server B1ms (~$12/mo)
-- **Storage**: Blob storage for desktop client releases (~$1/mo)
-- **Monitoring**: Application Insights
-- **Secrets**: Key Vault
+- **Storage**: Blob storage for desktop client releases (~$1/mo) — _Phase 5+, not yet deployed_
+- **Monitoring**: Application Insights (workspace-based, Log Analytics)
+- **Secrets**: Injected via App Service environment variables (Key Vault deferred to Phase 5+)
 
 **Total Cost**: ~$26/month
 
 ## CI/CD (GitHub Actions)
 
-- Backend: Build, test, deploy to App Service
-- Frontend: Build Blazor, deploy to Static Web Apps
-- Desktop: Build, sign, publish to Blob Storage
-- Infrastructure: Deploy Bicep templates to Azure
+- Backend: Build, test, deploy to App Service (EF migrations run as a deploy step)
+- Frontend: Build Blazor, deploy to Static Web Apps (PR preview environments included)
+- Desktop: Build, sign, publish to Blob Storage — _Phase 5+_
+- Infrastructure: Validate → What-If preview → Deploy Bicep templates
+- **Authentication**: OIDC federated credentials — no stored Azure service principal secrets
 
 ## Security
 
 - HTTPS everywhere
 - JWT authentication (15 min access + 7 day refresh tokens)
 - Passwords hashed with BCrypt
-- Azure Key Vault for secrets
+- Sensitive configuration injected as encrypted App Service environment variables
 - CORS restricted to frontend domain
+- OIDC federated credentials for CI/CD (no long-lived secrets in GitHub)
 - Rate limiting on API endpoints (planned - Phase 5)
 
 ## Scalability Considerations
