@@ -108,6 +108,13 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Register problem details service for RFC 9457-compliant JSON error responses.
+// app.UseExceptionHandler() below relies on this to format unhandled exceptions
+// as { "status": 500, "title": "...", "traceId": "..." } instead of an empty 500.
+builder.Services.AddProblemDetails(options =>
+    options.CustomizeProblemDetails = ctx =>
+        ctx.ProblemDetails.Extensions["traceId"] = ctx.HttpContext.TraceIdentifier);
+
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -129,7 +136,11 @@ if (app.Environment.IsDevelopment())
 // Middleware Pipeline (order matters!)
 // ---------------------------------------------------------------------------
 
-// CORS must come early in the pipeline, before auth and endpoints
+// Exception handler must be first so it can catch errors from all subsequent middleware.
+// Uses the ProblemDetails service registered above to return JSON error responses.
+app.UseExceptionHandler();
+
+// CORS must come before auth and endpoints
 app.UseCors("AllowFrontend");
 
 app.UseHttpsRedirection();

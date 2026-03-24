@@ -83,10 +83,11 @@ public class CardsController : ControllerBase
                 (c.FlavorName != null && c.FlavorName.ToLower().Contains(nameLower)));
         }
 
-        // Set filter: exact match on set code (normalize to lowercase)
-        if (!string.IsNullOrWhiteSpace(set))
+        // Set filter: exact match on set code (normalize to lowercase).
+        // Declared in outer scope so the dedup block can prefer same-set representatives.
+        var setLower = set?.Trim().ToLower();
+        if (!string.IsNullOrWhiteSpace(setLower))
         {
-            var setLower = set.Trim().ToLower();
             query = query.Where(c => c.SetCode == setLower);
         }
 
@@ -120,17 +121,24 @@ public class CardsController : ControllerBase
                 .ToListAsync();
 
             // Step 2: from ALL printings of those cards, pick one representative per OracleId.
-            // Include ImageUris and Faces so we can surface the matched printing's art.
+            // Include ImageUris, Faces, and SetCode so we can prefer the requested set's art.
             var allPrintingsForOracles = await _dbContext.Cards
                 .Where(c => matchingOracleIds.Contains(c.OracleId))
-                .Select(c => new { c.Id, c.OracleId, c.Name, c.FlavorName, c.ImageUris, c.Faces })
+                .Select(c => new { c.Id, c.OracleId, c.Name, c.FlavorName, c.ImageUris, c.Faces, c.SetCode })
                 .ToListAsync();
 
             var qLower = q?.Trim().ToLower();
 
             foreach (var group in allPrintingsForOracles.GroupBy(c => c.OracleId))
             {
-                var representative = group.FirstOrDefault(c => c.FlavorName == null) ?? group.First();
+                // When a set filter is active, prefer a representative from that specific set
+                // so search result images show the artwork for the requested printing.
+                var representative = !string.IsNullOrEmpty(setLower)
+                    ? (group.FirstOrDefault(c => c.SetCode == setLower && c.FlavorName == null)
+                       ?? group.FirstOrDefault(c => c.SetCode == setLower)
+                       ?? group.FirstOrDefault(c => c.FlavorName == null)
+                       ?? group.First())
+                    : (group.FirstOrDefault(c => c.FlavorName == null) ?? group.First());
 
                 // If the representative's own name doesn't match the query, the hit came from
                 // a flavor-name printing — record the flavor name and its image.
@@ -150,7 +158,12 @@ public class CardsController : ControllerBase
 
             var representativeIds = allPrintingsForOracles
                 .GroupBy(c => c.OracleId)
-                .Select(g => g.FirstOrDefault(c => c.FlavorName == null)?.Id ?? g.First().Id)
+                .Select(g => !string.IsNullOrEmpty(setLower)
+                    ? (g.FirstOrDefault(c => c.SetCode == setLower && c.FlavorName == null)?.Id
+                       ?? g.FirstOrDefault(c => c.SetCode == setLower)?.Id
+                       ?? g.FirstOrDefault(c => c.FlavorName == null)?.Id
+                       ?? g.First().Id)
+                    : (g.FirstOrDefault(c => c.FlavorName == null)?.Id ?? g.First().Id))
                 .ToList();
 
             query = _dbContext.Cards.Where(c => representativeIds.Contains(c.Id));
@@ -208,8 +221,10 @@ public class CardsController : ControllerBase
             Colors = DeserializeJsonArray(card.Colors),
             Finishes = DeserializeJsonArray(card.Finishes),
             ImageUri = CardImageHelper.ExtractImageUri(card.ImageUris, card.Faces),
-            IsMultiFaced = card.Faces != null,
-            Faces = card.Faces != null
+            // Art series cards (layout "art_series") have TypeLine "Card // Card" and two face images.
+            // They should be shown as single-image cards, not as double-faced cards.
+            IsMultiFaced = card.TypeLine != "Card // Card" && card.Faces != null,
+            Faces = card.TypeLine != "Card // Card" && card.Faces != null
                 ? JsonSerializer.Deserialize<List<CardFaceDto>>(card.Faces)
                 : null,
             ArenaId = card.ArenaId,
@@ -278,11 +293,11 @@ public class CardsController : ControllerBase
             return NotFound($"Card with ID {id} was not found.");
         }
 
-        // Fetch all printings of the same card (same Oracle ID), ordered for display
-        var allPrintings = await _dbContext.Cards
+        // Fetch all printings of the same card (same Oracle ID).
+        // Sorted in memory with natural ordering for collector numbers so "2" < "10"
+        // instead of the lexicographic "10" < "2" that ORDER BY produces for text columns.
+        var allPrintingsRaw = await _dbContext.Cards
             .Where(c => c.OracleId == card.OracleId)
-            .OrderBy(c => c.SetCode)
-            .ThenBy(c => c.CollectorNumber)
             .Select(c => new
             {
                 c.Id,
@@ -296,16 +311,20 @@ public class CardsController : ControllerBase
             })
             .ToListAsync();
 
-        var printingDtos = allPrintings.Select(p => new CardPrintingDto
-        {
-            Id = p.Id,
-            SetCode = p.SetCode,
-            CollectorNumber = p.CollectorNumber,
-            Rarity = p.Rarity,
-            Finishes = DeserializeJsonArray(p.Finishes),
-            ImageUri = CardImageHelper.ExtractImageUri(p.ImageUris, p.Faces),
-            FlavorName = p.FlavorName,
-        }).ToList();
+        var printingDtos = allPrintingsRaw
+            .OrderBy(p => p.SetCode)
+            .ThenBy(p => NaturalCollectorNumberSort(p.CollectorNumber))
+            .Select(p => new CardPrintingDto
+            {
+                Id = p.Id,
+                SetCode = p.SetCode,
+                CollectorNumber = p.CollectorNumber,
+                Rarity = p.Rarity,
+                Finishes = DeserializeJsonArray(p.Finishes),
+                ImageUri = CardImageHelper.ExtractImageUri(p.ImageUris, p.Faces),
+                FlavorName = p.FlavorName,
+            })
+            .ToList();
 
         // Deserialize the legalities JSON object into a dictionary
         Dictionary<string, string>? legalities = null;
@@ -321,6 +340,9 @@ public class CardsController : ControllerBase
             }
         }
 
+        // Art series cards have TypeLine "Card // Card": suppress DFC treatment so the
+        // detail page shows a single image without the flip button.
+        var isArtSeries = card.TypeLine == "Card // Card";
         var dto = new CardDetailDto
         {
             Id = card.Id,
@@ -340,8 +362,8 @@ public class CardsController : ControllerBase
             Colors = DeserializeJsonArray(card.Colors),
             Finishes = DeserializeJsonArray(card.Finishes),
             ImageUri = CardImageHelper.ExtractImageUri(card.ImageUris, card.Faces),
-            IsMultiFaced = card.Faces != null,
-            Faces = card.Faces != null
+            IsMultiFaced = !isArtSeries && card.Faces != null,
+            Faces = !isArtSeries && card.Faces != null
                 ? JsonSerializer.Deserialize<List<CardFaceDto>>(card.Faces)
                 : null,
             ArenaId = card.ArenaId,
@@ -352,6 +374,24 @@ public class CardsController : ControllerBase
         };
 
         return Ok(dto);
+    }
+
+    /// <summary>
+    /// Returns a composite sort key for natural ordering of Scryfall collector numbers.
+    /// The numeric prefix is compared as an integer so "2" sorts before "10".
+    /// Non-numeric entries (e.g., "T3", "★5") sort after all numeric ones.
+    /// Examples: "123" → (123, ""), "10a" → (10, "a"), "T1" → (MaxValue, "T1")
+    /// </summary>
+    private static (int NumericPart, string Suffix) NaturalCollectorNumberSort(string collectorNumber)
+    {
+        var i = 0;
+        while (i < collectorNumber.Length && char.IsDigit(collectorNumber[i]))
+            i++;
+
+        if (i > 0 && int.TryParse(collectorNumber[0..i], out var num))
+            return (num, collectorNumber[i..]);
+
+        return (int.MaxValue, collectorNumber);
     }
 
     /// <summary>

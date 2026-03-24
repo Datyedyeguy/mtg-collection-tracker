@@ -624,6 +624,71 @@ public class CardsControllerTests
         response.Cards[0].FlavorName.ShouldBe("Lightning, Lone Commando");
     }
 
+    [TestMethod]
+    public async Task SearchCards_ArtSeriesCard_IsNotTreatedAsMultiFaced()
+    {
+        // Arrange — art series cards have TypeLine "Card // Card" and two art faces,
+        // but should be shown as single-image cards without a DFC flip button.
+        var faces = new List<CardFaceDto>
+        {
+            new() { Name = "Panel 1", TypeLine = "Card", ImageUri = "https://example.com/art-front.jpg" },
+            new() { Name = "Panel 2", TypeLine = "Card", ImageUri = "https://example.com/art-back.jpg" },
+        };
+
+        var card = new Card
+        {
+            Id = Guid.NewGuid(),
+            ScryfallId = Guid.NewGuid(),
+            OracleId = Guid.NewGuid(),
+            Name = "Atraxa, Praetors' Voice",
+            SetCode = "bro",
+            CollectorNumber = "A1",
+            Rarity = "special",
+            TypeLine = "Card // Card",
+            Cmc = 0m,
+            Faces = JsonSerializer.Serialize(faces),
+            ImageUris = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+
+        await SeedCardsAsync(card);
+
+        // Act
+        var result = await _controller.SearchCards(q: "Atraxa");
+
+        // Assert
+        var ok = result.Result.ShouldBeOfType<OkObjectResult>();
+        var response = ok.Value.ShouldBeOfType<CardSearchResponseDto>();
+
+        response.Cards.Count.ShouldBe(1);
+        var dto = response.Cards[0];
+        dto.IsMultiFaced.ShouldBeFalse();  // Key: no DFC treatment
+        dto.Faces.ShouldBeNull();          // Key: no face list exposed
+        dto.TypeLine.ShouldBe("Card // Card");
+    }
+
+    [TestMethod]
+    public async Task SearchCards_WithSetFilter_DeduplicationPrefersRepresentativeFromRequestedSet()
+    {
+        // Arrange — Lightning Bolt in three sets; searching set=m21 should yield the M21 printing.
+        var sharedOracleId = Guid.NewGuid();
+        await SeedCardsAsync(
+            CreateCardWithOracle("Lightning Bolt", "lea", "161", sharedOracleId),
+            CreateCardWithOracle("Lightning Bolt", "m21", "123", sharedOracleId),
+            CreateCardWithOracle("Lightning Bolt", "znr", "45", sharedOracleId));
+
+        // Act — set filter narrows results to M21, dedup should pick the M21 representative
+        var result = await _controller.SearchCards(q: "lightning bolt", set: "m21");
+
+        // Assert
+        var ok = result.Result.ShouldBeOfType<OkObjectResult>();
+        var response = ok.Value.ShouldBeOfType<CardSearchResponseDto>();
+
+        response.TotalCards.ShouldBe(1);
+        response.Cards[0].SetCode.ShouldBe("m21");
+    }
+
     // -------------------------------------------------------------------------
     // Helper methods
     // -------------------------------------------------------------------------
