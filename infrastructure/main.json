@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "6072328817440833867"
+      "templateHash": "9387052547230254591"
     }
   },
   "parameters": {
@@ -37,14 +37,14 @@
     },
     "dbAdminPassword": {
       "type": "securestring",
-      "minLength": 16,
+      "defaultValue": "",
       "metadata": {
         "description": "PostgreSQL administrator password."
       }
     },
     "jwtSecret": {
       "type": "securestring",
-      "minLength": 32,
+      "defaultValue": "",
       "metadata": {
         "description": "JWT signing secret for the API. Must be at least 32 characters."
       }

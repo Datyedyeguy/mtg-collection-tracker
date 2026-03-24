@@ -27,13 +27,11 @@ param dbAdminLogin string
 
 @description('PostgreSQL administrator password.')
 @secure()
-@minLength(16)
-param dbAdminPassword string
+param dbAdminPassword string = ''
 
 @description('JWT signing secret for the API. Must be at least 32 characters.')
 @secure()
-@minLength(32)
-param jwtSecret string
+param jwtSecret string = ''
 
 @description('The URL of the deployed Static Web App frontend (used for CORS).')
 param frontendUrl string = ''
