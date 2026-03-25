@@ -158,23 +158,22 @@ jobs:
             --output         json \
           | tee deployment-outputs.json
 
-      # Expose the Static Web App deployment token as a repo secret so the
-      # frontend workflow can use it without manual portal steps.
-      # The token value is a Bicep @secure() output — it appears masked in logs.
-      - name: Update SWA deployment token secret
-        run: |
-          SWA_TOKEN=$(cat deployment-outputs.json | jq -r '.staticWebAppDeploymentToken.value')
-          gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --body "$SWA_TOKEN"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Print the live URLs so they're easy to find in the workflow run log
+      # Print the live URLs and the SWA token to the Step Summary.
+      # The token must be copied manually to GitHub Secrets as AZURE_STATIC_WEB_APPS_API_TOKEN
+      # (one-time step after first deploy — requires a PAT to set programmatically).
       - name: Print deployment outputs
         run: |
           API_URL=$(cat deployment-outputs.json | jq -r '.apiHostname.value')
           SWA_URL=$(cat deployment-outputs.json | jq -r '.staticWebAppHostname.value')
+          SWA_TOKEN=$(cat deployment-outputs.json | jq -r '.staticWebAppDeploymentToken.value')
           echo "### 🚀 Deployment complete" >> $GITHUB_STEP_SUMMARY
           echo "| Resource | URL |"          >> $GITHUB_STEP_SUMMARY
           echo "|---|---|"                    >> $GITHUB_STEP_SUMMARY
           echo "| API | https://$API_URL |"  >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | https://$SWA_URL |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Next steps" >> $GITHUB_STEP_SUMMARY
+          echo "Add this value as GitHub Secret \`AZURE_STATIC_WEB_APPS_API_TOKEN\`:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$SWA_TOKEN" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
