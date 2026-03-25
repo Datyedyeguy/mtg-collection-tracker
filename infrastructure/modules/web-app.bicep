@@ -138,6 +138,3 @@ resource staticWebApp 'Microsoft.Web/staticSites@2024-04-01' = {
 output apiHostname string = apiApp.properties.defaultHostName
 
 output staticWebAppHostname string = staticWebApp.properties.defaultHostname
-
-@secure()
-output staticWebAppDeploymentToken string = staticWebApp.listSecrets().properties.apiKey

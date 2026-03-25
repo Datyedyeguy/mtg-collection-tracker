@@ -110,9 +110,5 @@ output apiHostname string = webApp.outputs.apiHostname
 @description('The default hostname of the Static Web App.')
 output staticWebAppHostname string = webApp.outputs.staticWebAppHostname
 
-@description('The deployment token for Static Web Apps CI/CD.')
-@secure()
-output staticWebAppDeploymentToken string = webApp.outputs.staticWebAppDeploymentToken
-
 @description('The PostgreSQL server FQDN.')
 output dbServerFqdn string = database.outputs.serverFqdn
