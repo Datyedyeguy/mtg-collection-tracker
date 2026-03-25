@@ -147,6 +147,10 @@ jobs:
       - name: Deploy Bicep templates
         id: deploy
         run: |
+          # pipefail ensures the pipeline exits with az's exit code, not tee's.
+          # Without it, a failed deployment would show a green check because
+          # tee always exits 0.
+          set -o pipefail
           az deployment group create \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --template-file  infrastructure/main.bicep \
