@@ -36,12 +36,9 @@ on:
       - ".github/workflows/backend-ci.yml"
   pull_request:
     branches: [main]
-    paths:
-      - "src/backend/**"
-      - "src/shared/**"
-      - "tests/**"
-      - "Directory.Build.props"
-      - ".github/workflows/backend-ci.yml"
+    # No path filter on PRs — the workflow must always run so branch protection
+    # sees a status. The build job detects changed paths and exits early if
+    # no relevant files were modified.
 
 jobs:
   build:
@@ -52,27 +49,57 @@ jobs:
       # Step 1: Clone the repository
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for changed-files detection on PRs
+
+      # Step 1b: Detect whether any backend-relevant files changed.
+      # On push events the path filter above already handles this; on PRs we
+      # do it here so we can skip the build when only docs/infra changed.
+      - name: Check for relevant file changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+            echo "Changed files:"
+            echo "$CHANGED"
+            if echo "$CHANGED" | grep -qE '^(src/backend/|src/shared/|tests/|Directory\.Build\.props|\.github/workflows/backend-ci\.yml)'; then
+              echo "relevant=true" >> $GITHUB_OUTPUT
+            else
+              echo "relevant=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "relevant=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip (no relevant changes)
+        if: steps.changes.outputs.relevant == 'false'
+        run: echo "No backend files changed — skipping build and test."
 
       # Step 2: Install .NET SDK
       - name: Setup .NET
+        if: steps.changes.outputs.relevant != 'false'
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
 
       # Step 3: Restore NuGet packages
       - name: Restore dependencies
+        if: steps.changes.outputs.relevant != 'false'
         run: dotnet restore MTGCollectionTracker.Backend.slnx
 
       # Step 4: Check for known vulnerable packages (fails build if any found)
       - name: Audit for vulnerabilities
+        if: steps.changes.outputs.relevant != 'false'
         run: dotnet list MTGCollectionTracker.Backend.slnx package --vulnerable --include-transitive
 
       # Step 5: Build in Release mode
       - name: Build
+        if: steps.changes.outputs.relevant != 'false'
         run: dotnet build MTGCollectionTracker.Backend.slnx --configuration Release --no-restore
 
       # Step 6: Run tests
       - name: Test
+        if: steps.changes.outputs.relevant != 'false'
         run: dotnet test MTGCollectionTracker.Backend.slnx --configuration Release --no-build --verbosity normal
 
       # Step 7: Publish release artifact (only when deploying)
