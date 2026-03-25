@@ -1,12 +1,11 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "languageVersion": "2.0",
   "contentVersion": "1.0.0.0",
   "metadata": {
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "9387052547230254591"
+      "templateHash": "12357655943492232478"
     }
   },
   "parameters": {
@@ -74,8 +73,8 @@
     "logAnalyticsName": "[format('log-mtg-{0}', variables('suffix'))]",
     "corsOrigins": "[if(not(empty(parameters('frontendUrl'))), createArray(parameters('frontendUrl')), createArray())]"
   },
-  "resources": {
-    "monitoring": {
+  "resources": [
+    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "monitoring",
@@ -219,7 +218,7 @@
         }
       }
     },
-    "database": {
+    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "database",
@@ -333,7 +332,7 @@
         }
       }
     },
-    "webApp": {
+    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "webApp",
@@ -356,7 +355,7 @@
             "value": "[variables('staticWebAppName')]"
           },
           "dbConnectionString": {
-            "value": "[format('Host={0};Port=5432;Database=mtgtracker;Username={1};Password={2};Ssl Mode=Require;Trust Server Certificate=true', reference('database').outputs.serverFqdn.value, parameters('dbAdminLogin'), parameters('dbAdminPassword'))]"
+            "value": "[format('Host={0};Port=5432;Database=mtgtracker;Username={1};Password={2};Ssl Mode=Require;Trust Server Certificate=true', reference(resourceId('Microsoft.Resources/deployments', 'database'), '2025-04-01').outputs.serverFqdn.value, parameters('dbAdminLogin'), parameters('dbAdminPassword'))]"
           },
           "jwtSecret": {
             "value": "[parameters('jwtSecret')]"
@@ -365,7 +364,7 @@
             "value": "[variables('corsOrigins')]"
           },
           "appInsightsConnectionString": {
-            "value": "[reference('monitoring').outputs.appInsightsConnectionString.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'monitoring'), '2025-04-01').outputs.appInsightsConnectionString.value]"
           }
         },
         "template": {
@@ -376,7 +375,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "3858975673836209812"
+              "templateHash": "17669933001134214689"
             }
           },
           "parameters": {
@@ -513,48 +512,37 @@
             "staticWebAppHostname": {
               "type": "string",
               "value": "[reference('staticWebApp').defaultHostname]"
-            },
-            "staticWebAppDeploymentToken": {
-              "type": "securestring",
-              "value": "[listSecrets('staticWebApp', '2024-04-01').properties.apiKey]"
             }
           }
         }
       },
       "dependsOn": [
-        "database",
-        "monitoring"
+        "[resourceId('Microsoft.Resources/deployments', 'database')]",
+        "[resourceId('Microsoft.Resources/deployments', 'monitoring')]"
       ]
     }
-  },
+  ],
   "outputs": {
     "apiHostname": {
       "type": "string",
       "metadata": {
         "description": "The hostname of the deployed API (e.g. app-mtg-api-prod-abc123.azurewebsites.net)."
       },
-      "value": "[reference('webApp').outputs.apiHostname.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'webApp'), '2025-04-01').outputs.apiHostname.value]"
     },
     "staticWebAppHostname": {
       "type": "string",
       "metadata": {
         "description": "The default hostname of the Static Web App."
       },
-      "value": "[reference('webApp').outputs.staticWebAppHostname.value]"
-    },
-    "staticWebAppDeploymentToken": {
-      "type": "securestring",
-      "metadata": {
-        "description": "The deployment token for Static Web Apps CI/CD."
-      },
-      "value": "[listOutputsWithSecureValues('webApp', '2025-04-01').staticWebAppDeploymentToken]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'webApp'), '2025-04-01').outputs.staticWebAppHostname.value]"
     },
     "dbServerFqdn": {
       "type": "string",
       "metadata": {
         "description": "The PostgreSQL server FQDN."
       },
-      "value": "[reference('database').outputs.serverFqdn.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'database'), '2025-04-01').outputs.serverFqdn.value]"
     }
   }
 }
