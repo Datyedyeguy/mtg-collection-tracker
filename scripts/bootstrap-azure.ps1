@@ -166,6 +166,8 @@ else {
 # We create two federated credentials:
 #   1. main branch — used by backend-ci, frontend-ci, and infrastructure-ci deploy jobs
 #   2. pull_request — used by PR validation jobs that need Azure for what-if previews
+#   3. environment:production — used by deploy jobs that specify 'environment: production'
+#      (GitHub changes the OIDC subject claim when a job targets a named environment)
 
 $federatedCredentials = @(
     @{
@@ -177,6 +179,11 @@ $federatedCredentials = @(
         name    = 'github-pull-request'
         subject = "repo:${githubRepo}:pull_request"
         desc    = 'GitHub Actions — pull request checks'
+    },
+    @{
+        name    = 'github-environment-production'
+        subject = "repo:${githubRepo}:environment:production"
+        desc    = 'GitHub Actions — production environment deployments'
     }
 )
 
