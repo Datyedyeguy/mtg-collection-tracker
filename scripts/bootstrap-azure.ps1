@@ -132,7 +132,36 @@ else {
 $resourceGroupId = (az group show --name $ResourceGroup --query id -o tsv)
 
 # ---------------------------------------------------------------------------
-# Step 2: App Registration (Entra ID)
+# Step 2: Register required Azure resource providers
+# ---------------------------------------------------------------------------
+# Resource providers must be registered on a subscription before that service
+# can be deployed. Most common ones are registered automatically, but
+# Microsoft.DBforPostgreSQL is not registered by default on new subscriptions.
+# This step is idempotent — registering an already-registered provider is a no-op.
+
+Write-Step "Registering required Azure resource providers..."
+
+$providers = @(
+    'Microsoft.DBforPostgreSQL',  # PostgreSQL Flexible Server
+    'Microsoft.Web',              # App Service + Static Web Apps
+    'Microsoft.Insights',         # Application Insights
+    'Microsoft.OperationalInsights' # Log Analytics
+)
+
+foreach ($provider in $providers) {
+    $state = az provider show --namespace $provider --query "registrationState" -o tsv 2>$null
+    if ($state -eq 'Registered') {
+        Write-Info "$provider — already registered."
+    }
+    else {
+        Write-Info "Registering $provider (this may take ~30 seconds)..."
+        az provider register --namespace $provider --wait | Out-Null
+        Write-Ok "$provider registered."
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Step 3: App Registration (Entra ID)
 # ---------------------------------------------------------------------------
 
 Write-Step "Checking for App Registration '$AppName'..."
@@ -160,7 +189,7 @@ else {
 }
 
 # ---------------------------------------------------------------------------
-# Step 3: Federated OIDC credentials
+# Step 4: Federated OIDC credentials
 # ---------------------------------------------------------------------------
 
 # We create two federated credentials:
@@ -219,7 +248,7 @@ foreach ($cred in $federatedCredentials) {
 }
 
 # ---------------------------------------------------------------------------
-# Step 4: Role assignment (Contributor on the resource group)
+# Step 5: Role assignment (Contributor on the resource group)
 # ---------------------------------------------------------------------------
 
 Write-Step "Assigning Contributor role to Service Principal on resource group..."
@@ -241,7 +270,7 @@ else {
 }
 
 # ---------------------------------------------------------------------------
-# Step 5: GitHub secrets
+# Step 6: GitHub secrets
 # ---------------------------------------------------------------------------
 
 Write-Step "Storing IDs as GitHub Actions secrets..."
